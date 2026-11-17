@@ -1,20 +1,57 @@
 <!DOCTYPE html>
 <html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CCAR Study Hub</title>
+<script src="/auth.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* Layout idea: a lobby page with one card per study kit. */
-:root{--bg:#f4f5f7;--surface:#fff;--ink:#18212f;--muted:#5b6678;--line:#d9dee6;--teal:#1d5a73;--display:"Source Serif 4",Georgia,serif;--body:"IBM Plex Sans",system-ui,sans-serif;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#11161e;--surface:#19202b;--ink:#e7ebf1;--muted:#9aa5b5;--line:#2c3644;--teal:#6fb3cf;color-scheme:dark}}
+/* Layout idea: a two-door lobby. One card per kit, coloured with that kit's own accent. */
+:root{--bg:#f4f5f7;--surface:#fff;--ink:#18212f;--muted:#5b6678;--line:#d9dee6;--teal:#1d5a73;--plum:#6b2f6e;--display:"Source Serif 4",Georgia,serif;--body:"IBM Plex Sans",system-ui,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#11161e;--surface:#19202b;--ink:#e7ebf1;--muted:#9aa5b5;--line:#2c3644;--teal:#6fb3cf;--plum:#d39ad6;color-scheme:dark}}
 *{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body)}
 .wrap{max-width:760px;margin:0 auto;padding:32px 16px;display:flex;flex-direction:column;gap:20px}
 h1,h2{font-family:var(--display);margin:0;line-height:1.2;text-wrap:balance}h1{font-size:2rem}h2{font-size:1.3rem}p{margin:0}.muted{color:var(--muted)}
-a.kit{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--teal);border-radius:12px;padding:18px;color:inherit;text-decoration:none}
-a.kit:hover,a.kit:focus-visible{border-color:var(--teal);outline:none}
-.tag{font-size:.75rem;font-weight:600;letter-spacing:.08em;color:var(--teal)}.small{font-size:.875rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+a.kit{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--c);border-radius:12px;padding:18px;color:inherit;text-decoration:none}
+a.kit:hover,a.kit:focus-visible{border-color:var(--c);outline:none}
+.tag{font-size:.75rem;font-weight:600;letter-spacing:.08em;color:var(--c)}
+.small{font-size:.875rem}
+form.card{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;max-width:420px}
+label{display:flex;flex-direction:column;gap:4px;font-weight:500;font-size:.9rem}
+input{font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+input:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+button{font:inherit;font-weight:600;padding:10px 14px;border-radius:8px;border:0;background:var(--teal);color:#fff;cursor:pointer;min-height:44px}
+@media (prefers-color-scheme:dark){button{color:#0d1a20}}
+.link{background:none;color:var(--teal);padding:0;min-height:0;font-weight:500;align-self:flex-start;text-decoration:underline}
+.err{color:#b3261e}@media (prefers-color-scheme:dark){.err{color:#f2b8b5}}
+[hidden]{display:none!important}
 </style></head>
 <body><main class="wrap">
-<header style="display:flex;flex-direction:column;gap:6px"><h1>CCAR Study Hub</h1><p class="muted">Practice material for the Claude Certified Architect – Professional (CCAR-P) exam.</p></header>
-<a class="kit" href="/ccar-p/"><span class="tag">CCAR-P</span><h2>CCAR-P Study Kit</h2><p class="small muted">Daily plan, domain and paper notes, flashcards, six timed mocks, mixed mocks and domain drills. 378 original questions.</p></a>
-<p class="small muted">Unofficial practice material, not Anthropic exam content. Scores and progress are saved in your browser only.</p>
-</main></body></html>
+<header style="display:flex;flex-direction:column;gap:6px"><h1>CCAR Study Hub</h1><p class="muted">Exam: Claude Certified Architect – Professional (CCAR-P), Monday 30 November 2026.</p></header>
+<form class="card" id="login" hidden autocomplete="on">
+<h2>Sign in</h2>
+<label>Username<input name="username" id="u" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+<label>Password<input name="password" id="p" type="password" autocomplete="current-password" required></label>
+<button type="submit" id="go">Sign in</button>
+<p class="small err" id="msg" role="alert"></p>
+</form>
+<div id="kits" hidden style="display:flex;flex-direction:column;gap:20px">
+<div class="grid">
+<a class="kit" href="/ccar-p/" style="--c:var(--teal)"><span class="tag">MAIN KIT · CCAR-P</span><h2>CCAR-P Study Kit</h2><p class="small muted">Daily plan to 30 November, domain and paper notes, flashcards, six timed mocks, mixed mocks and domain drills. 378 original questions.</p></a>
+<a class="kit" href="/bandorini/" style="--c:var(--plum)"><span class="tag">SUPPLEMENT · CCAR-F</span><h2>Bandorini CCAR-F Study Kit</h2><p class="small muted">Bandorini Mock Exams 1 and 2 and the CCAR-F guide's sample questions as timed tests, plus notes and flashcards from the study booklet.</p></a>
+</div>
+<p class="small muted">Scores and progress are saved in this browser only. Private study material: the questions are encrypted and open only after sign-in.</p>
+<button class="link small" id="out" type="button">Sign out</button>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const next=(()=>{const n=new URLSearchParams(location.search).get("next")||"";return /^\/(ccar-p|bandorini)\/$/.test(n)?n:""})();
+function show(){const s=CCXAuth.signedIn();if(s&&next){location.replace(next);return}$("login").hidden=s;$("kits").hidden=!s;if(!s)$("u").focus()}
+$("login").onsubmit=async e=>{e.preventDefault();$("go").disabled=true;$("go").textContent="Checking…";$("msg").textContent="";
+try{await CCXAuth.signIn($("u").value,$("p").value);$("p").value="";show()}
+catch(x){$("msg").textContent=x==="auth"?"That username and password don't match.":"Couldn't reach the site. Check your connection and try again."}
+$("go").disabled=false;$("go").textContent="Sign in"};
+$("out").onclick=()=>{CCXAuth.signOut();history.replaceState(null,"","/");show()};
+show();
+</script>
+</body></html>

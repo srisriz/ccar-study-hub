@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bandorini CCAR-F Study Kit</title>
+<script src="/auth.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a study binder. Plum accent marks it as the Bandorini kit, distinct from the teal CCAR-P kit. Single column, scenario context pinned above each question. */
+:root{
+  --bg:#f6f4f7; --surface:#ffffff; --ink:#1f1a24; --muted:#675e70; --line:#ded8e3;
+  --accent:#6b2f6e; --accent-soft:#f1e6f1;
+  --good:#1e7b4a; --good-soft:#e3f4ea; --bad:#b3261e; --bad-soft:#fbe7e5; --warn:#94600a; --warn-soft:#fbf1dc;
+  --display:"Fraunces", Georgia, serif; --body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141118; --surface:#1d1922; --ink:#ece6f0; --muted:#a69cb0; --line:#332c3b;
+  --accent:#d39ad6; --accent-soft:#35213a; --good:#5cc48b; --good-soft:#163525; --bad:#f08a80; --bad-soft:#3d1d1b; --warn:#e3b158; --warn-soft:#3a2d14; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#141118; --surface:#1d1922; --ink:#ece6f0; --muted:#a69cb0; --line:#332c3b;
+  --accent:#d39ad6; --accent-soft:#35213a; --good:#5cc48b; --good-soft:#163525; --bad:#f08a80; --bad-soft:#3d1d1b; --warn:#e3b158; --warn-soft:#3a2d14; color-scheme:dark;}
+*{box-sizing:border-box} html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body);-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 96px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:1.85rem} h2{font-size:1.3rem} h3{font-size:1.05rem}
+p{margin:0} .muted{color:var(--muted)} .small{font-size:.875rem}
+.stack{display:flex;flex-direction:column;gap:12px} .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.opt:focus-within,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 14px;font-weight:500;min-height:44px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn:disabled{opacity:.45;cursor:not-allowed} .btn.ghost{background:transparent}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tabs button{border:0;background:transparent;border-radius:7px;padding:10px 4px;font-weight:500;min-height:44px}
+.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;min-height:44px}
+.tile:hover{border-color:var(--accent)} .tile .pill{align-self:flex-start} .tile:disabled{opacity:.55;cursor:default} .tile .t{font-weight:600}
+.pill{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-variant-numeric:tabular-nums}
+.pill.good{background:var(--good-soft);color:var(--good)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.brand{letter-spacing:.32em;font-size:.72rem;font-weight:600;color:var(--accent)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);margin-bottom:16px}
+.bar .row{justify-content:space-between}
+.timer{font-variant-numeric:tabular-nums;font-weight:600} .timer.low{color:var(--bad)}
+.prog{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:8px} .prog i{display:block;height:100%;background:var(--accent)}
+.scen{background:var(--accent-soft);border-radius:10px;padding:10px 14px} .scen summary{cursor:pointer;font-weight:600;font-size:.9rem;min-height:24px}
+.scen p{margin-top:6px;font-size:.92rem}
+.qtext{font-size:1.02rem;font-weight:500}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 14px;cursor:pointer;min-height:44px}
+.opt input{margin-top:4px;width:18px;height:18px;flex:none;accent-color:var(--accent)}
+.opt .k{font-weight:600;color:var(--muted);flex:none;width:1.2em}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.right{border-color:var(--good);background:var(--good-soft)} .opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.why{border-left:3px solid var(--accent);padding:8px 12px;background:var(--surface);border-radius:0 8px 8px 0}
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+.nav .in{max-width:760px;margin:0 auto;display:flex;gap:8px} .nav .in .btn{flex:1}
+.qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px}
+.qgrid button{min-height:40px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-variant-numeric:tabular-nums;font-size:.85rem;position:relative}
+.qgrid button.ans{background:var(--accent-soft);border-color:var(--accent)} .qgrid button.cur{outline:2px solid var(--ink)}
+.qgrid button.flag::after{content:"";position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--warn)}
+.qgrid button.r{background:var(--good-soft);border-color:var(--good)} .qgrid button.w{background:var(--bad-soft);border-color:var(--bad)}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);max-width:420px;width:calc(100% - 32px);padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.score{font-family:var(--display);font-size:3rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.dom{display:grid;grid-template-columns:1fr 64px;gap:4px 10px;align-items:center;font-size:.9rem}
+.meter{grid-column:1/-1;height:8px;border-radius:4px;background:var(--line);overflow:hidden;position:relative;margin-bottom:8px}
+.meter i{display:block;height:100%} .meter b{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink);left:72%}
+.num{font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
+.flagbtn[aria-pressed="true"]{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;max-width:68ch}
+.note .ap{font-size:.92rem;color:var(--muted)}
+.trap{border-left:4px solid var(--warn)}
+.flash{display:flex;flex-direction:column;gap:12px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 18px;min-height:240px;justify-content:center}
+.flash .front{font-family:var(--display);font-size:1.2rem;font-weight:600;line-height:1.35}
+.flash.on{border-color:var(--accent)} .flash .back{font-size:1.02rem;font-weight:600;color:var(--accent);border-top:1px solid var(--line);padding-top:12px}
+.weights{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.9rem;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<script>if(!CCXAuth.signedIn())CCXAuth.toLogin()</script>
+<main class="wrap" id="app"><p class="muted">Loading the Bandorini kit…</p></main>
+<dialog id="dlg"><div class="stack"><h3 id="dlgT"></h3><p id="dlgB" class="muted"></p><div class="row" style="justify-content:flex-end"><button class="btn ghost" id="dlgNo">Keep going</button><button class="btn primary" id="dlgYes">Submit</button></div></div></dialog>
+<script>
+const DN={1:["Agentic Architecture & Orchestration",27],2:["Tool Design & MCP Integration",18],3:["Claude Code Configuration & Workflows",20],4:["Prompt Engineering & Structured Output",20],5:["Context Management & Reliability",15]};
+const DK=["1","2","3","4","5"],PASS=0.72,$=s=>document.querySelector(s),app=$("#app"),L="ABCDEF",NUMW=["","ONE","TWO","THREE","FOUR"];
+let T=[],ST=null,S=null,C=null,timerId=null,tab="tests";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function rng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(arr,seed){const r=rng(seed),a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||"null");localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+async function loadData(){const parts=await Promise.all(Array.from({length:4},(_,i)=>fetch("d."+i).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})));let b=new Uint8Array(parts.reduce((a,x)=>a+x.byteLength,0));let o=0;for(const x of parts){b.set(new Uint8Array(x),o);o+=x.byteLength}b=await CCXAuth.open(b);let t;
+if(b[0]===0x1f&&b[1]===0x8b){t=await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"))).text()}else t=new TextDecoder().decode(b);return JSON.parse(t)}
+loadData().then(({tests:t,study:s})=>{T=t;ST=s;T.forEach(x=>x.qs.forEach((q,j)=>q.key=x.id+":"+j));const h=location.hash.slice(1);if(["tests","notes","cards"].includes(h))tab=h;home()})
+.catch(e=>{if(e==="auth"){CCXAuth.toLogin();return}app.innerHTML='<div class="card"><h2>The kit did not load</h2><p class="muted">Reload the page. If it still fails, ask Claude to republish it.</p></div>'});
+
+function home(){
+  clearInterval(timerId);S=null;C=null;window.scrollTo(0,0);
+  const best=store("bando-best")||{};
+  const tests=T.map(t=>{const b=best[t.id],mins=Math.round(t.qs.length*2);return `<button class="tile" data-test="${t.id}"><span class="t">${esc(t.title)}</span><span class="small muted">${t.qs.length} questions · ${mins} minutes · ${esc(t.by)}</span>${b!=null?`<span class="pill ${b>=PASS?"good":"bad"}">Best ${Math.round(b*100)}%</span>`:`<span class="pill">Not taken</span>`}</button>`}).join("");
+  const miss=(store("bando-miss")||[]).length;
+  let body="";
+  if(tab==="tests") body=`<p class="small muted">Timed at 2 minutes a question, as on the real exam. Each answer locks as soon as you give it, and the correct answer and explanation appear straight away. Options keep their original letters, because the explanations refer to them.</p><div class="grid2">${tests}</div>
+   <section class="card stack"><h3>CCAR-F blueprint</h3><div class="weights">${DK.map(k=>`<span>${DN[k][0]}</span><span class="num">${DN[k][1]}%</span>`).join("")}</div><p class="small muted">60 items, 120 minutes, 4 scenarios drawn from a bank of 6, pass at 720 on a 100–1,000 scale (CCAR-F Exam Guide v1.0).</p></section>`;
+  else if(tab==="notes") body=`<section class="card stack"><h3>These materials are for CCAR-F, not CCAR-P</h3><p class="small">Your booked exam is the Professional (CCAR-P). The overlap is large: agent patterns, MCP and tool design, Claude Code configuration, structured output, context and escalation. CCAR-F goes deeper on hands-on mechanics (stop_reason, tool_choice, hook events, CLI flags, file locations). CCAR-P adds governance and compliance, evaluation and A/B testing, stakeholder communication and business value, which these notes do not cover. Use them to sharpen Integration, Developer Productivity and design questions.</p></section>
+   <div class="grid2">${DK.map(k=>`<button class="tile" data-notes="${k}"><span class="t">${k}. ${DN[k][0]}</span><span class="small muted">${DN[k][1]}% of CCAR-F · ${ST.domains[k].points.length} topics · traps</span></button>`).join("")}</div>
+   <p class="small muted">Written from your exam guide, Study Notebook and Complete Study Booklet. Topics the booklet adds beyond the official guide are labelled “booklet”.</p>`;
+  else body=`<p class="small muted">Answer in your head, tap to check. “Again” sends the card to the back.</p>
+   <div class="grid2"><button class="tile" data-cards="miss" ${miss?"":"disabled"}><span class="t">My missed questions</span><span class="small muted">${miss?miss+" cards from your tests":"Fills up as you take the tests"}</span></button>
+   <button class="tile" data-cards="c-all"><span class="t">All concepts</span><span class="small muted">${ST.cards.length} cards</span></button></div>
+   <h2>By domain</h2><div class="grid2">${DK.map(k=>`<button class="tile" data-cards="c-${k}"><span class="t">${k}. ${DN[k][0]}</span><span class="small muted">${ST.cards.filter(c=>c[2]===k).length} cards</span></button>`).join("")}</div>
+   <h2>By test</h2><p class="small muted">Scenario question on the front, answer and reasoning on the back. Best after you have sat that test.</p><div class="grid2">${T.map(t=>`<button class="tile" data-cards="t-${t.id}"><span class="t">${esc(t.title)}</span><span class="small muted">${t.qs.length} cards</span></button>`).join("")}</div>`;
+  app.innerHTML=`<div class="stack" style="gap:20px"><header class="stack" style="gap:6px"><a class="small" href="/" style="color:var(--accent)">← All study kits</a><span class="brand">BANDORINI</span><h1>Bandorini CCAR-F Study Kit</h1>
+   <p class="muted">Your two Bandorini mock papers and the exam guide's sample questions as timed tests, plus notes and flashcards from your study booklet and notebook.</p></header>
+   <div class="tabs" role="tablist">${[["tests","Tests"],["notes","Notes"],["cards","Flashcards"]].map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${tab==k}">${l}</button>`).join("")}</div>${body}</div>`;
+  app.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;try{history.replaceState(null,"","#"+tab)}catch(e){}home()});
+  app.querySelectorAll("[data-test]").forEach(b=>b.onclick=()=>startTest(b.dataset.test));
+  app.querySelectorAll("[data-notes]").forEach(b=>b.onclick=()=>openNotes(b.dataset.notes));
+  app.querySelectorAll("[data-cards]").forEach(b=>b.onclick=()=>startCards(b.dataset.cards));
+}
+
+/* tests */
+function startTest(id){const t=T.find(x=>x.id===id);const qs=t.qs;
+  S={id,t,qs,cur:0,sel:qs.map(()=>[]),flag:qs.map(()=>false),lock:qs.map(()=>false),end:Date.now()+qs.length*120000,done:false};timerId=setInterval(tick,1000);render()}
+function fmt(ms){const s=Math.max(0,Math.round(ms/1000));return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`}
+function tick(){if(!S||S.done)return;const left=S.end-Date.now(),el=$("#timer");if(el){el.textContent=fmt(left);el.classList.toggle("low",left<600000)}if(left<=0)finish()}
+const correct=(q,sel)=>sel.length===q.a.length&&q.a.every(a=>sel.includes(a));
+function render(){
+  const q=S.qs[S.cur],sel=S.sel[S.cur],n=S.qs.length,answered=S.sel.filter(s=>s.length).length,k=q.a.length,multi=k>1,fin=S.done,rev=fin||S.lock[S.cur];
+  const prev=S.cur>0?S.qs[S.cur-1].s:null,sc=S.t.scen[q.s];
+  const opts=q.o.map((o,i)=>{let c=sel.includes(i)?"sel":"";if(rev){if(q.a.includes(i))c="right";else if(sel.includes(i))c="wrong"}
+    return `<label class="opt ${c}" for="o${i}"><input id="o${i}" type="${multi?"checkbox":"radio"}" name="opt" ${sel.includes(i)?"checked":""} ${rev?"disabled":""} data-i="${i}"><span class="k">${L[i]}</span><span>${esc(o)}</span></label>`}).join("");
+  const status=rev?(correct(q,sel)?`<span class="pill good">Correct</span>`:sel.length?`<span class="pill bad">Incorrect · answer ${q.a.map(i=>L[i]).join(", ")}</span>`:`<span class="pill warn">Not answered · answer ${q.a.map(i=>L[i]).join(", ")}</span>`):"";
+  app.innerHTML=`<div class="bar"><div class="row"><button class="btn ghost small" id="quit">${fin?"← Results":"Exit"}</button><strong class="small">${esc(S.t.title)}</strong>${!fin?`<span class="timer" id="timer">${fmt(S.end-Date.now())}</span>`:`<span class="small muted">${S.cur+1}/${n}</span>`}</div><div class="prog"><i style="width:${(fin?S.cur+1:answered)/n*100}%"></i></div></div>
+  <div class="stack" style="gap:16px">
+   ${q.s?`<details class="scen" ${q.s!==prev?"open":""}><summary>${esc(q.s)}</summary>${sc?`<p>${esc(sc)}</p>`:""}</details>`:""}
+   <div class="row" style="justify-content:space-between"><span class="small muted">Question ${S.cur+1} of ${n}${rev?` · Domain ${q.d}: ${DN[q.d][0]}`:""}</span>${status}</div>
+   <p class="qtext">${esc(q.q)}</p>
+   ${multi?`<p class="small"><strong>Select ${NUMW[k]||k}.</strong>${rev?"":" Your answer locks once you have picked "+(NUMW[k]||k).toLowerCase()+"."}</p>`:""}
+   <div class="opts">${opts}</div>
+   ${rev?`<div class="why"><strong>Why: </strong>${esc(q.x)}</div>`:""}
+   ${!fin?`<div class="row"><button class="btn flagbtn" id="flag" aria-pressed="${S.flag[S.cur]}">${S.flag[S.cur]?"Flagged for review":"Flag for review"}</button></div>`:""}
+   <details class="card"><summary class="small" style="cursor:pointer;min-height:24px">All questions · ${answered} answered${fin?"":` · ${S.flag.filter(Boolean).length} flagged`}</summary><div class="qgrid" style="margin-top:12px">${S.qs.map((qq,i)=>{let c=i===S.cur?"cur ":"";if(fin||S.lock[i])c+=correct(qq,S.sel[i])?"r ":"w ";if(!fin){if(S.flag[i])c+="flag"}return `<button class="${c}" data-go="${i}" aria-label="Question ${i+1}">${i+1}</button>`}).join("")}</div></details>
+  </div>
+  <nav class="nav"><div class="in"><button class="btn" id="prev" ${S.cur?"":"disabled"}>Previous</button>${S.cur<n-1?`<button class="btn primary" id="next">Next</button>`:fin?`<button class="btn primary" id="res">Results</button>`:`<button class="btn primary" id="sub">Submit test</button>`}</div></nav>`;
+  app.querySelectorAll(".opt input").forEach(inp=>inp.onchange=()=>{if(S.done||S.lock[S.cur])return;const i=+inp.dataset.i;let s=S.sel[S.cur];
+    if(multi){s=s.includes(i)?s.filter(x=>x!==i):[...s,i];if(s.length>k)s=s.slice(-k)}else s=[i];S.sel[S.cur]=s;if(s.length===k)S.lock[S.cur]=true;render()});
+  const on=(id,f)=>{const e=$("#"+id);if(e)e.onclick=f};
+  on("prev",()=>go(S.cur-1));on("next",()=>go(S.cur+1));on("res",results);on("flag",()=>{S.flag[S.cur]=!S.flag[S.cur];render()});
+  on("sub",()=>{const un=n-answered,fl=S.flag.filter(Boolean).length;confirmBox("Submit this test?",`${un?un+" unanswered. ":""}${fl?fl+" flagged. ":""}You can review every answer afterwards.`,finish)});
+  on("quit",()=>{if(S.done)return results();confirmBox("Leave this attempt?","Your answers in this attempt will not be saved.",home,"Leave")});
+  app.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(+b.dataset.go));
+}
+function go(i){S.cur=i;render();window.scrollTo(0,0)}
+function confirmBox(t,b,yes,label="Submit"){const d=$("#dlg");$("#dlgT").textContent=t;$("#dlgB").textContent=b;$("#dlgYes").textContent=label;$("#dlgYes").onclick=()=>{d.close();yes()};$("#dlgNo").onclick=()=>d.close();try{d.showModal()}catch(e){yes()}}
+function finish(){S.done=true;clearInterval(timerId);const sc=S.qs.filter((q,i)=>correct(q,S.sel[i])).length/S.qs.length;
+  const best=store("bando-best")||{};best[S.id]=Math.max(best[S.id]||0,sc);store("bando-best",best);
+  const miss=new Set(store("bando-miss")||[]);S.qs.forEach((q,i)=>{if(correct(q,S.sel[i]))miss.delete(q.key);else miss.add(q.key)});store("bando-miss",[...miss]);results()}
+function results(){window.scrollTo(0,0);const n=S.qs.length,ok=S.qs.filter((q,i)=>correct(q,S.sel[i])).length,pct=ok/n;
+  const by={};S.qs.forEach((q,i)=>{by[q.d]=by[q.d]||[0,0];by[q.d][1]++;if(correct(q,S.sel[i]))by[q.d][0]++});
+  const doms=DK.filter(k=>by[k]).map(k=>{const [a,t]=by[k],p=a/t;return `<span>${k}. ${DN[k][0]}</span><span class="num">${a}/${t}</span><div class="meter"><i style="width:${p*100}%;background:var(${p>=PASS?"--good":"--bad"})"></i><b></b></div>`}).join("");
+  const weak=DK.filter(k=>by[k]&&by[k][0]/by[k][1]<PASS);
+  const list=S.qs.map((q,i)=>({q,i,ok:correct(q,S.sel[i])})).filter(x=>!x.ok);
+  app.innerHTML=`<div class="stack" style="gap:20px"><div class="row" style="justify-content:space-between"><button class="btn ghost" id="home">← All tests</button><span class="small muted">${esc(S.t.title)}</span></div>
+  <section class="card stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="score">${Math.round(pct*100)}%</div><p class="muted">${ok} of ${n} correct</p></div><span class="pill ${pct>=PASS?"good":"bad"}">${pct>=PASS?"Above the ~72% pass line":"Below the ~72% pass line"}</span></div>
+  ${weak.length?`<p class="small"><strong>Revise next:</strong> ${weak.map(k=>`<button class="btn small" data-notes="${k}" style="min-height:36px;padding:4px 10px">${DN[k][0]} notes</button>`).join(" ")}</p>`:`<p class="small"><strong>Every domain is at or above the pass line.</strong></p>`}</section>
+  <section class="card stack"><h3>By domain</h3><div class="dom">${doms}</div><p class="small muted">The black tick marks 72%.</p></section>
+  <section class="stack"><h3>Questions you missed (${list.length})</h3>${list.length?list.map(x=>`<button class="tile" data-rev="${x.i}"><span class="small muted">Q${x.i+1} · Domain ${x.q.d}</span><span>${esc(x.q.q.length>220?x.q.q.slice(0,220)+"…":x.q.q)}</span></button>`).join(""):`<p class="muted">None. Well done.</p>`}</section>
+  <div class="row"><button class="btn" id="revall">Review all answers</button><button class="btn primary" id="again">Retake</button></div></div>`;
+  $("#home").onclick=home;$("#revall").onclick=()=>go(0);$("#again").onclick=()=>startTest(S.id);
+  app.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>go(+b.dataset.rev));
+  app.querySelectorAll("[data-notes]").forEach(b=>b.onclick=()=>openNotes(b.dataset.notes));
+}
+
+/* notes */
+function page(title,sub,body){window.scrollTo(0,0);app.innerHTML=`<div class="stack" style="gap:18px"><button class="btn ghost" id="back" style="align-self:flex-start">← Back</button><header class="stack" style="gap:6px"><span class="brand">BANDORINI</span><h1>${title}</h1>${sub?`<p class="muted">${sub}</p>`:""}</header>${body}</div>`;$("#back").onclick=()=>{tab="notes";home()}}
+function openNotes(k){const d=ST.domains[k];
+  page(`${k}. ${esc(d.name)}`,`${d.w}% of CCAR-F. ${esc(d.lead)}`,
+  `${d.points.map(([t,a,b])=>`<section class="note"><h3>${esc(t)}</h3><p>${esc(a)}</p><p class="ap">${esc(b)}</p></section>`).join("")}
+  <section class="card stack trap"><h3>Traps</h3><ul class="list">${d.traps.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></section>
+  <div class="row"><button class="btn primary" id="dc">Flashcards for this domain</button></div>`);$("#dc").onclick=()=>startCards("c-"+k)}
+
+/* flashcards */
+function qCard(q,tag){return{f:q.q,b:q.a.map(i=>L[i]+". "+q.o[i]).join("   ·   "),x:q.x,tag}}
+function startCards(deck){let cards=[],title="";
+  if(deck==="miss"){const keys=store("bando-miss")||[];cards=keys.map(s=>{const [id,j]=s.split(":");const t=T.find(x=>x.id===id);return t&&t.qs[+j]?qCard(t.qs[+j],`${t.title} · Q${+j+1}`):null}).filter(Boolean);title="My missed questions"}
+  else if(deck.startsWith("t-")){const t=T.find(x=>x.id===deck.slice(2));cards=t.qs.map((q,j)=>qCard(q,`Q${j+1} · Domain ${q.d}`));title=t.title}
+  else{const k=deck.slice(2);cards=ST.cards.filter(c=>k==="all"||c[2]===k).map(c=>({f:c[0],b:c[1],tag:`Domain ${c[2]}: ${DN[c[2]][0]}`}));title=k==="all"?"All concepts":DN[k][0]}
+  C={deck,title,queue:shuffle(cards,Date.now()%99991),total:cards.length,known:0,flip:false};drawCard()}
+function drawCard(){window.scrollTo(0,0);
+  if(!C.queue.length){app.innerHTML=`<div class="stack" style="gap:18px"><button class="btn ghost" id="back" style="align-self:flex-start">← Back</button><section class="card stack"><h2>Deck complete</h2><p class="muted">You worked through all ${C.total} cards in ${esc(C.title)}.</p><div class="row"><button class="btn primary" id="redo">Shuffle and go again</button></div></section></div>`;$("#back").onclick=()=>{tab="cards";home()};$("#redo").onclick=()=>startCards(C.deck);return}
+  const c=C.queue[0];
+  app.innerHTML=`<div class="stack" style="gap:16px"><div class="row" style="justify-content:space-between"><button class="btn ghost" id="back">← Back</button><span class="small muted">${esc(C.title)} · ${C.known}/${C.total} known</span></div>
+  <div class="prog"><i style="width:${C.known/C.total*100}%"></i></div>
+  <button class="flash ${C.flip?"on":""}" id="flip" aria-label="${C.flip?"Card back":"Show the answer"}"><span class="small muted">${esc(c.tag)}</span><span class="front">${esc(c.f)}</span>${C.flip?`<span class="back">${esc(c.b)}</span>${c.x?`<span class="small">${esc(c.x)}</span>`:""}`:`<span class="small muted">Tap to show the answer</span>`}</button>
+  ${C.flip?`<div class="row"><button class="btn" id="again" style="flex:1">Again</button><button class="btn primary" id="got" style="flex:1">Got it</button></div>`:""}</div>`;
+  $("#back").onclick=()=>{tab="cards";home()};$("#flip").onclick=()=>{C.flip=!C.flip;drawCard()};
+  const g=$("#got");if(g)g.onclick=()=>{C.queue.shift();C.known++;C.flip=false;drawCard()};
+  const a=$("#again");if(a)a.onclick=()=>{C.queue.push(C.queue.shift());C.flip=false;drawCard()};
+}
+</script>
+</body>
+</html>

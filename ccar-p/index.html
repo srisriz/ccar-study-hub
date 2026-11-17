@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CCAR-P Question Bank</title>
+<script src="/auth.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
@@ -104,6 +105,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 </style>
 </head>
 <body>
+<script>if(!CCXAuth.signedIn())CCXAuth.toLogin()</script>
 <main class="wrap" id="app"><p class="muted">Loading the question bank…</p></main>
 <dialog id="dlg"><div class="stack"><h3 id="dlgT"></h3><p id="dlgB" class="muted"></p><div class="row" style="justify-content:flex-end"><button class="btn ghost" id="dlgNo">Keep going</button><button class="btn primary" id="dlgYes">Submit</button></div></div></dialog>
 <script>
@@ -117,9 +119,9 @@ function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(
 function prep(q,seed){const idx=shuffle(q.o.map((_,i)=>i),seed);return{...q,opts:idx.map(i=>q.o[i]),ans:idx.map((i,p)=>i<q.k?p:-1).filter(p=>p>=0)}}
 
 let STUDY=null;
-async function loadData(){const parts=await Promise.all(Array.from({length:5},(_,i)=>fetch("d."+i).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})));const b=new Uint8Array(parts.reduce((a,x)=>a+x.byteLength,0));let o=0;for(const x of parts){b.set(new Uint8Array(x),o);o+=x.byteLength}let t;
+async function loadData(){const parts=await Promise.all(Array.from({length:5},(_,i)=>fetch("d."+i).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})));let b=new Uint8Array(parts.reduce((a,x)=>a+x.byteLength,0));let o=0;for(const x of parts){b.set(new Uint8Array(x),o);o+=x.byteLength}b=await CCXAuth.open(b);let t;
 if(b[0]===0x1f&&b[1]===0x8b){t=await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"))).text()}else t=new TextDecoder().decode(b);return JSON.parse(t)}
-loadData().then(({bank:b,study:s})=>{BANK=b;STUDY=s;BANK.forEach((t,i)=>t.forEach((q,j)=>q.src=i+"-"+j));const h=location.hash.slice(1);if(["mocks","drills","study","cards","plan"].includes(h))homeTab=h;home()}).catch(()=>{app.innerHTML='<div class="card"><h2>The question bank did not load</h2><p class="muted">Reload the page. If it still fails, ask Claude to republish the bank.</p></div>'});
+loadData().then(({bank:b,study:s})=>{BANK=b;STUDY=s;BANK.forEach((t,i)=>t.forEach((q,j)=>q.src=i+"-"+j));const h=location.hash.slice(1);if(["mocks","drills","study","cards","plan"].includes(h))homeTab=h;home()}).catch(e=>{if(e==="auth"){CCXAuth.toLogin();return}app.innerHTML='<div class="card"><h2>The question bank did not load</h2><p class="muted">Reload the page. If it still fails, ask Claude to republish the bank.</p></div>'});
 
 function home(){
   clearInterval(timerId);S=null;window.scrollTo(0,0);
