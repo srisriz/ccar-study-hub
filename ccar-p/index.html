@@ -112,11 +112,12 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 const DOM={SD:["Solution Design & Architecture",17],MP:["Claude Models, Prompting & Context Engineering",13],IN:["Integration",19],EV:["Evaluation, Testing & Optimization",16],GV:["Governance, Safety & Risk Management",14],SC:["Stakeholder Communication & Lifecycle Management",14],DP:["Developer Productivity & Operational Enablement",7]};
 const KEYS=Object.keys(DOM), PASS=0.72, $=s=>document.querySelector(s), app=$("#app");
 let BANK=[], S=null, timerId=null, homeTab="plan";
+const SAVE="ccarp-paused";
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function rng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
 function shuffle(arr,seed){const r=rng(seed),a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||"null");localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
-function prep(q,seed){const idx=shuffle(q.o.map((_,i)=>i),seed);return{...q,opts:idx.map(i=>q.o[i]),ans:idx.map((i,p)=>i<q.k?p:-1).filter(p=>p>=0)}}
+function prep(q,seed){const idx=shuffle(q.o.map((_,i)=>i),seed);return{...q,seed,opts:idx.map(i=>q.o[i]),ans:idx.map((i,p)=>i<q.k?p:-1).filter(p=>p>=0)}}
 
 let STUDY=null;
 async function loadData(){const parts=await Promise.all(Array.from({length:5},(_,i)=>fetch("d."+i).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})));let b=new Uint8Array(parts.reduce((a,x)=>a+x.byteLength,0));let o=0;for(const x of parts){b.set(new Uint8Array(x),o);o+=x.byteLength}b=await CCXAuth.open(b);let t;
@@ -132,8 +133,9 @@ function home(){
   app.innerHTML=`<div class="stack" style="gap:20px">
   <header class="stack" style="gap:6px"><a class="small" href="/" style="color:var(--accent)">← All study kits</a><span class="pill" style="align-self:flex-start">CCAR-P · Claude Certified Architect – Professional</span><h1>Study kit and question bank</h1>
   <p class="muted">A two-week plan to 30 November, notes for every domain and every mock, flashcards, and 378 original questions written to the seven official domains. Unofficial practice material, not Anthropic exam content.</p></header>
+  ${pausedCard()}
   <div class="tabs" role="tablist">${[["plan","Plan"],["study","Notes"],["cards","Flashcards"],["mocks","Mocks"],["drills","Drills"]].map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${homeTab==k}">${l}</button>`).join("")}</div>
-  ${homeTab=="mocks"?`<p class="small muted">Timed like the real exam. Each answer locks as soon as you give it, and the correct answer and explanation appear straight away. The pass line shown is about 72%, a rough guide to the 720/1000 scaled pass mark.</p><div class="grid2">${mocks}<button class="tile" data-mix="1"><span class="t">Mixed mock</span><span class="small muted">63 questions · 120 minutes · new mix each time, missed questions first</span>${best.mix!=null?`<span class="pill ${best.mix>=PASS?"good":"bad"}">Last ${Math.round(best.mix*100)}%</span>`:`<span class="pill">Use after Mock 6</span>`}</button></div>`
+  ${homeTab=="mocks"?`<p class="small muted">Timed like the real exam. Each answer locks as soon as you give it, and the correct answer and explanation appear straight away. The pass line shown is about 72%, a rough guide to the 720/1000 scaled pass mark. Need a break? Press Pause: the clock stops, and your progress is saved on this device until you come back.</p><div class="grid2">${mocks}<button class="tile" data-mix="1"><span class="t">Mixed mock</span><span class="small muted">63 questions · 120 minutes · new mix each time, missed questions first</span>${best.mix!=null?`<span class="pill ${best.mix>=PASS?"good":"bad"}">Last ${Math.round(best.mix*100)}%</span>`:`<span class="pill">Use after Mock 6</span>`}</button></div>`
   :homeTab=="drills"?`<p class="small muted">Untimed. 15 random questions from one domain. Each answer locks when you give it and shows the correct answer and explanation.</p><div class="grid2">${drills}</div>`
   :homeTab=="study"?studyHome():homeTab=="cards"?cardsHome():planHome()}
   ${homeTab=="mocks"||homeTab=="drills"?`<section class="card stack"><h3>Exam blueprint</h3><div class="weights">${KEYS.map(k=>`<span>${esc(DOM[k][0])}</span><span class="num">${DOM[k][1]}%</span>`).join("")}</div><p class="small muted">Source: CCAR-P Exam Guide v1.0 (July 2026). 63 questions, 120 minutes, pass at 720 on a 100–1,000 scale.</p></section>`:""}
@@ -142,14 +144,17 @@ function home(){
   wireExtras();
   app.querySelectorAll("[data-mock]").forEach(b=>b.onclick=()=>startMock(+b.dataset.mock));
   app.querySelectorAll("[data-drill]").forEach(b=>b.onclick=()=>startDrill(b.dataset.drill));
+  wirePaused();
 }
 
 function startMock(i){
+  if(!fresh(()=>startMock(i)))return;
   const qs=shuffle(BANK[i],1000+i).map((q,j)=>prep(q,i*997+j*31+7));
   S={mode:"mock",id:"m"+i,title:`Mock exam ${i+1}`,qs,cur:0,sel:qs.map(()=>[]),flag:qs.map(()=>false),lock:qs.map(()=>false),end:Date.now()+120*60000,done:false};
   timerId=setInterval(tick,1000);render();
 }
 function startMixed(){
+  if(!fresh(startMixed))return;
   const seed=Date.now()%100000,miss=new Set(store("ccarp-miss")||[]),all=BANK.flat(),tgt={SD:11,MP:8,IN:12,EV:10,GV:9,SC:9,DP:4};
   let pick=[];KEYS.forEach(k=>{const pool=shuffle(all.filter(q=>q.d===k),seed+k.charCodeAt(0));pool.sort((a,b)=>miss.has(b.src)-miss.has(a.src));pick=pick.concat(pool.slice(0,tgt[k]))});
   const qs=shuffle(pick,seed).map((q,j)=>prep(q,seed+j*17));
@@ -157,13 +162,14 @@ function startMixed(){
   timerId=setInterval(tick,1000);render();
 }
 function startDrill(k){
+  if(!fresh(()=>startDrill(k)))return;
   const pool=BANK.flat().filter(q=>q.d===k),seed=Date.now()%100000;
   const qs=shuffle(pool,seed).slice(0,15).map((q,j)=>prep(q,seed+j*13));
   S={mode:"drill",id:"d"+k,title:DOM[k][0],qs,cur:0,sel:qs.map(()=>[]),checked:qs.map(()=>false),flag:qs.map(()=>false),lock:qs.map(()=>false),done:false};
   render();
 }
 function fmt(ms){const s=Math.max(0,Math.round(ms/1000));return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`}
-function tick(){if(!S||S.mode!=="mock"||S.done)return;const left=S.end-Date.now();const el=$("#timer");if(el){el.textContent=fmt(left);el.classList.toggle("low",left<600000)}if(left<=0)finish()}
+function tick(){if(!S||S.mode!=="mock"||S.done||S.paused)return;const left=S.end-Date.now();const el=$("#timer");if(el){el.textContent=fmt(left);el.classList.toggle("low",left<600000)}if(left<=0)finish()}
 const correct=(q,sel)=>sel.length===q.ans.length&&q.ans.every(a=>sel.includes(a));
 
 function render(){
@@ -173,7 +179,7 @@ function render(){
   const opts=q.opts.map((o,i)=>{let c=sel.includes(i)?"sel":"";if(reveal){if(q.ans.includes(i))c="right";else if(sel.includes(i))c="wrong"}
     return `<label class="opt ${c}" for="o${i}"><input id="o${i}" type="${multi?"checkbox":"radio"}" name="opt" ${sel.includes(i)?"checked":""} ${reveal?"disabled":""} data-i="${i}"><span class="k">${"ABCDE"[i]}</span><span>${esc(o)}</span></label>`}).join("");
   const status=reveal?(correct(q,sel)?`<span class="pill good">Correct</span>`:sel.length?`<span class="pill bad">Incorrect · answer ${q.ans.map(i=>"ABCDE"[i]).join(", ")}</span>`:`<span class="pill warn">Not answered · answer ${q.ans.map(i=>"ABCDE"[i]).join(", ")}</span>`):"";
-  app.innerHTML=`<div class="bar"><div class="row"><button class="btn ghost small" id="quit">${S.done?"← Results":"Exit"}</button><strong class="small">${esc(S.title)}</strong>${S.mode==="mock"&&!S.done?`<span class="timer" id="timer">${fmt(S.end-Date.now())}</span>`:`<span class="small muted">${S.cur+1}/${n}</span>`}</div><div class="prog"><i style="width:${(S.done?S.cur+1:answered)/n*100}%"></i></div></div>
+  app.innerHTML=`<div class="bar"><div class="row"><button class="btn ghost small" id="quit">${S.done?"← Results":"Exit"}</button><strong class="small">${esc(S.title)}</strong>${S.mode==="mock"&&!S.done?`<span class="row" style="gap:10px"><span class="timer" id="timer">${fmt(S.end-Date.now())}</span><button class="btn small" id="pause">Pause</button></span>`:!S.done?`<span class="row" style="gap:10px"><span class="small muted">${S.cur+1}/${n}</span><button class="btn small" id="pause">Pause</button></span>`:`<span class="small muted">${S.cur+1}/${n}</span>`}</div><div class="prog"><i style="width:${(S.done?S.cur+1:answered)/n*100}%"></i></div></div>
   <div class="stack" style="gap:16px">
    <div class="row" style="justify-content:space-between"><span class="small muted">Question ${S.cur+1} of ${n} · ${esc(DOM[q.d][0])}</span>${status}</div>
    <p class="qtext">${esc(q.q)}</p>
@@ -192,15 +198,52 @@ function render(){
   on("flag",()=>{S.flag[S.cur]=!S.flag[S.cur];render()});
   on("check",()=>{S.checked[S.cur]=true;render()});
   on("sub",()=>{if(S.mode==="drill")return finish();const un=n-answered,fl=S.flag.filter(Boolean).length;confirmBox("Submit this exam?",`${un?un+" unanswered. ":""}${fl?fl+" flagged. ":""}You can review every answer afterwards.`,finish)});
-  on("quit",()=>{if(S.done)return results();confirmBox("Leave this attempt?","Your answers in this attempt will not be saved.",home,"Leave")});
+  on("quit",()=>{if(S.done)return results();pauseRun()});
+  on("pause",pauseRun);
+  saveRun();
   app.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(+b.dataset.go));
 }
 function go(i){S.cur=i;render();window.scrollTo(0,0)}
-function confirmBox(t,b,yes,label="Submit"){const d=$("#dlg");$("#dlgT").textContent=t;$("#dlgB").textContent=b;$("#dlgYes").textContent=label;$("#dlgYes").onclick=()=>{d.close();yes()};$("#dlgNo").onclick=()=>d.close();try{d.showModal()}catch(e){yes()}}
+function confirmBox(t,b,yes,label="Submit",no="Keep going"){const d=$("#dlg");$("#dlgT").textContent=t;$("#dlgB").textContent=b;$("#dlgYes").textContent=label;$("#dlgNo").textContent=no;$("#dlgYes").onclick=()=>{d.close();yes()};$("#dlgNo").onclick=()=>d.close();try{d.showModal()}catch(e){yes()}}
 
-function finish(){S.done=true;clearInterval(timerId);
+function finish(){S.done=true;S.paused=false;clearInterval(timerId);store(SAVE,null);
   if(S.mode!=="cards"){const miss=new Set(store("ccarp-miss")||[]);S.qs.forEach((q,i)=>{if(correct(q,S.sel[i]))miss.delete(q.src);else miss.add(q.src)});store("ccarp-miss",[...miss])}const sc=S.qs.filter((q,i)=>correct(q,S.sel[i])).length/S.qs.length;const best=store("ccarp-best")||{};
   best[S.id]=S.mode==="mock"&&S.id!=="mix"?Math.max(best[S.id]||0,sc):sc;store("ccarp-best",best);results()}
+/* ---------- pause and continue ---------- */
+function saveRun(){if(!S||S.done||!S.qs)return;
+  store(SAVE,{mode:S.mode,id:S.id,title:S.title,ref:S.qs.map(q=>[q.src,q.seed]),cur:S.cur,sel:S.sel,flag:S.flag,lock:S.lock,checked:S.checked||null,
+    left:S.mode==="mock"?(S.paused?S.left:Math.max(0,S.end-Date.now())):null,at:Date.now()})}
+function pauseRun(){if(!S||S.done)return;
+  if(S.mode==="mock"&&!S.paused)S.left=Math.max(0,S.end-Date.now());
+  clearInterval(timerId);S.paused=true;saveRun();window.scrollTo(0,0);
+  const n=S.qs.length,answered=S.sel.filter(s=>s.length).length;
+  app.innerHTML=`<section class="card stack" style="text-align:center;padding:32px 20px;gap:14px;margin-top:24px"><span class="pill warn" style="align-self:center">Paused</span><h2>${esc(S.title)}</h2>
+  <p class="muted">${answered} of ${n} answered${S.mode==="mock"?` · ${fmt(S.left)} left on the clock`:""}</p>
+  <p class="small muted">${S.mode==="mock"?"The clock has stopped and the questions are hidden. ":""}Your progress is saved on this device. You can close this page and continue later from the study kit.</p>
+  <div class="row" style="justify-content:center"><button class="btn" id="pexit">Save and exit</button><button class="btn primary" id="resume">Continue</button></div></section>`;
+  $("#resume").onclick=resume;$("#pexit").onclick=home}
+function resume(){if(!S)return;S.paused=false;clearInterval(timerId);
+  if(S.mode==="mock"){S.end=Date.now()+S.left;timerId=setInterval(tick,1000)}render();window.scrollTo(0,0)}
+function resumeRun(){const P=store(SAVE);if(!P)return home();
+  try{const qs=P.ref.map(([src,seed])=>{const [i,j]=src.split("-").map(Number),q=BANK[i]&&BANK[i][j];if(!q)throw 0;return prep(q,seed)});
+    S={mode:P.mode,id:P.id,title:P.title,qs,cur:Math.min(P.cur||0,qs.length-1),sel:P.sel,flag:P.flag,lock:P.lock,done:false,paused:true,left:P.left};
+    if(P.mode==="drill")S.checked=P.checked||qs.map(()=>false);
+    if(S.sel.length!==qs.length)throw 0}
+  catch(e){store(SAVE,null);S=null;return home()}
+  resume()}
+function fresh(again){const P=store(SAVE);if(!P)return true;
+  confirmBox("Start a new attempt?",`You have a paused attempt at ${P.title}. Starting a new one will discard it.`,()=>{store(SAVE,null);again()},"Start new","Cancel");return false}
+function pausedCard(){const P=store(SAVE);if(!P||!P.ref)return "";
+  const n=P.ref.length,answered=(P.sel||[]).filter(s=>s&&s.length).length;
+  let when="";try{when=new Date(P.at).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}catch(e){}
+  return `<section class="card stack" style="border-color:var(--warn)"><div class="row" style="justify-content:space-between"><span class="pill warn">Paused</span><span class="small muted">${when?"Saved "+when:""}</span></div>
+  <h3>${esc(P.title)}</h3><p class="small muted">${answered} of ${n} answered${P.left!=null?` · ${fmt(P.left)} left on the clock`:""}</p>
+  <div class="row"><button class="btn primary" id="resumeRun">Continue</button><button class="btn ghost" id="dropRun">Discard</button></div></section>`}
+function wirePaused(){const r=$("#resumeRun");if(r)r.onclick=resumeRun;
+  const d=$("#dropRun");if(d)d.onclick=()=>confirmBox("Discard the paused attempt?","Your answers in that attempt will be lost.",()=>{store(SAVE,null);home()},"Discard","Cancel")}
+addEventListener("pagehide",saveRun);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)saveRun()});
+
 /* ---------- study notes ---------- */
 const mockOrder=i=>shuffle(BANK[i],1000+i);
 function studyHome(){
