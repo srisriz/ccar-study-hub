@@ -88,7 +88,17 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .meter b{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink);left:72%}
 .num{font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
 .flagbtn[aria-pressed="true"]{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
-.tabs{display:grid;grid-template-columns:repeat(5,1fr)}
+.tabs{display:grid;grid-template-columns:repeat(6,1fr)}
+@media (max-width:560px){.tabs{grid-template-columns:repeat(3,1fr)}}
+.mist{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0}
+.mist summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.mist summary::-webkit-details-marker{display:none}
+.mist[open] summary{border-bottom:1px solid var(--line)}
+.mist .body{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.mist .q{font-weight:500}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.85rem;min-height:36px}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
 .tabs button{padding:10px 2px;font-size:.88rem;min-width:0}
 .list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .note{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;max-width:68ch}
@@ -112,7 +122,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 const DOM={SD:["Solution Design & Architecture",17],MP:["Claude Models, Prompting & Context Engineering",13],IN:["Integration",19],EV:["Evaluation, Testing & Optimization",16],GV:["Governance, Safety & Risk Management",14],SC:["Stakeholder Communication & Lifecycle Management",14],DP:["Developer Productivity & Operational Enablement",7]};
 const KEYS=Object.keys(DOM), PASS=0.72, $=s=>document.querySelector(s), app=$("#app");
 let BANK=[], S=null, timerId=null, homeTab="plan";
-const SAVE="ccarp-paused";
+const SAVE="ccarp-paused", STATS="ccarp-stats";
+let mistFilter="open";
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function rng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
 function shuffle(arr,seed){const r=rng(seed),a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -122,7 +133,7 @@ function prep(q,seed){const idx=shuffle(q.o.map((_,i)=>i),seed);return{...q,seed
 let STUDY=null;
 async function loadData(){const parts=await Promise.all(Array.from({length:5},(_,i)=>fetch("d."+i).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})));let b=new Uint8Array(parts.reduce((a,x)=>a+x.byteLength,0));let o=0;for(const x of parts){b.set(new Uint8Array(x),o);o+=x.byteLength}b=await CCXAuth.open(b);let t;
 if(b[0]===0x1f&&b[1]===0x8b){t=await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"))).text()}else t=new TextDecoder().decode(b);return JSON.parse(t)}
-loadData().then(({bank:b,study:s})=>{BANK=b;STUDY=s;BANK.forEach((t,i)=>t.forEach((q,j)=>q.src=i+"-"+j));const h=location.hash.slice(1);if(["mocks","drills","study","cards","plan"].includes(h))homeTab=h;home()}).catch(e=>{if(e==="auth"){CCXAuth.toLogin();return}app.innerHTML='<div class="card"><h2>The question bank did not load</h2><p class="muted">Reload the page. If it still fails, ask Claude to republish the bank.</p></div>'});
+loadData().then(({bank:b,study:s})=>{BANK=b;STUDY=s;BANK.forEach((t,i)=>t.forEach((q,j)=>q.src=i+"-"+j));const h=location.hash.slice(1);if(["mocks","drills","study","cards","plan","progress"].includes(h))homeTab=h;home()}).catch(e=>{if(e==="auth"){CCXAuth.toLogin();return}app.innerHTML='<div class="card"><h2>The question bank did not load</h2><p class="muted">Reload the page. If it still fails, ask Claude to republish the bank.</p></div>'});
 
 function home(){
   clearInterval(timerId);S=null;window.scrollTo(0,0);
@@ -134,17 +145,17 @@ function home(){
   <header class="stack" style="gap:6px"><a class="small" href="/" style="color:var(--accent)">← All study kits</a><span class="pill" style="align-self:flex-start">CCAR-P · Claude Certified Architect – Professional</span><h1>Study kit and question bank</h1>
   <p class="muted">A two-week plan to 30 November, notes for every domain and every mock, flashcards, and 378 original questions written to the seven official domains. Unofficial practice material, not Anthropic exam content.</p></header>
   ${pausedCard()}
-  <div class="tabs" role="tablist">${[["plan","Plan"],["study","Notes"],["cards","Flashcards"],["mocks","Mocks"],["drills","Drills"]].map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${homeTab==k}">${l}</button>`).join("")}</div>
+  <div class="tabs" role="tablist">${[["plan","Plan"],["study","Notes"],["cards","Flashcards"],["mocks","Mocks"],["drills","Drills"],["progress","Progress"]].map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${homeTab==k}">${l}</button>`).join("")}</div>
   ${homeTab=="mocks"?`<p class="small muted">Timed like the real exam. Each answer locks as soon as you give it, and the correct answer and explanation appear straight away. The pass line shown is about 72%, a rough guide to the 720/1000 scaled pass mark. Need a break? Press Pause: the clock stops, and your progress is saved on this device until you come back.</p><div class="grid2">${mocks}<button class="tile" data-mix="1"><span class="t">Mixed mock</span><span class="small muted">63 questions · 120 minutes · new mix each time, missed questions first</span>${best.mix!=null?`<span class="pill ${best.mix>=PASS?"good":"bad"}">Last ${Math.round(best.mix*100)}%</span>`:`<span class="pill">Use after Mock 6</span>`}</button></div>`
   :homeTab=="drills"?`<p class="small muted">Untimed. 15 random questions from one domain. Each answer locks when you give it and shows the correct answer and explanation.</p><div class="grid2">${drills}</div>`
-  :homeTab=="study"?studyHome():homeTab=="cards"?cardsHome():planHome()}
+  :homeTab=="study"?studyHome():homeTab=="cards"?cardsHome():homeTab=="progress"?progressHome():planHome()}
   ${homeTab=="mocks"||homeTab=="drills"?`<section class="card stack"><h3>Exam blueprint</h3><div class="weights">${KEYS.map(k=>`<span>${esc(DOM[k][0])}</span><span class="num">${DOM[k][1]}%</span>`).join("")}</div><p class="small muted">Source: CCAR-P Exam Guide v1.0 (July 2026). 63 questions, 120 minutes, pass at 720 on a 100–1,000 scale.</p></section>`:""}
   </div>`;
   app.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{homeTab=b.dataset.tab;try{history.replaceState(null,"","#"+homeTab)}catch(e){}home()});
   wireExtras();
   app.querySelectorAll("[data-mock]").forEach(b=>b.onclick=()=>startMock(+b.dataset.mock));
   app.querySelectorAll("[data-drill]").forEach(b=>b.onclick=()=>startDrill(b.dataset.drill));
-  wirePaused();
+  wirePaused();wireProgress();
 }
 
 function startMock(i){
@@ -181,7 +192,7 @@ function render(){
   const status=reveal?(correct(q,sel)?`<span class="pill good">Correct</span>`:sel.length?`<span class="pill bad">Incorrect · answer ${q.ans.map(i=>"ABCDE"[i]).join(", ")}</span>`:`<span class="pill warn">Not answered · answer ${q.ans.map(i=>"ABCDE"[i]).join(", ")}</span>`):"";
   app.innerHTML=`<div class="bar"><div class="row"><button class="btn ghost small" id="quit">${S.done?"← Results":"Exit"}</button><strong class="small">${esc(S.title)}</strong>${S.mode==="mock"&&!S.done?`<span class="row" style="gap:10px"><span class="timer" id="timer">${fmt(S.end-Date.now())}</span><button class="btn small" id="pause">Pause</button></span>`:!S.done?`<span class="row" style="gap:10px"><span class="small muted">${S.cur+1}/${n}</span><button class="btn small" id="pause">Pause</button></span>`:`<span class="small muted">${S.cur+1}/${n}</span>`}</div><div class="prog"><i style="width:${(S.done?S.cur+1:answered)/n*100}%"></i></div></div>
   <div class="stack" style="gap:16px">
-   <div class="row" style="justify-content:space-between"><span class="small muted">Question ${S.cur+1} of ${n} · ${esc(DOM[q.d][0])}</span>${status}</div>
+   <div class="row" style="justify-content:space-between"><span class="small muted">Question ${S.cur+1} of ${n} · ${esc(DOM[q.d][0])}</span><span class="row" style="gap:6px">${reveal?"":missedPill(q.src)}${status}</span></div>
    <p class="qtext">${esc(q.q)}</p>
    ${multi?`<p class="small muted">Choose two answers.${reveal?"":" Your answer locks once you have picked two."}</p>`:""}
    <div class="opts">${opts}</div>
@@ -192,7 +203,7 @@ function render(){
   </div>
   <nav class="nav"><div class="in"><button class="btn" id="prev" ${S.cur?"":"disabled"}>Previous</button>${S.cur<n-1?`<button class="btn primary" id="next">Next</button>`:S.done?`<button class="btn primary" id="res">Results</button>`:`<button class="btn primary" id="sub">${S.mode==="mock"?"Submit exam":"See results"}</button>`}</div></nav>`;
   app.querySelectorAll(".opt input").forEach(inp=>inp.onchange=()=>{if(S.done||S.lock[S.cur])return;const i=+inp.dataset.i;let s=S.sel[S.cur];
-    if(multi){s=s.includes(i)?s.filter(x=>x!==i):[...s,i];if(s.length>2)s=s.slice(-2)}else s=[i];S.sel[S.cur]=s;if(s.length===q.ans.length)S.lock[S.cur]=true;render()});
+    if(multi){s=s.includes(i)?s.filter(x=>x!==i):[...s,i];if(s.length>2)s=s.slice(-2)}else s=[i];S.sel[S.cur]=s;if(s.length===q.ans.length){S.lock[S.cur]=true;record(q.src,correct(q,s))}render()});
   const on=(id,f)=>{const e=$("#"+id);if(e)e.onclick=f};
   on("prev",()=>go(S.cur-1));on("next",()=>go(S.cur+1));on("res",results);
   on("flag",()=>{S.flag[S.cur]=!S.flag[S.cur];render()});
@@ -243,6 +254,32 @@ function wirePaused(){const r=$("#resumeRun");if(r)r.onclick=resumeRun;
   const d=$("#dropRun");if(d)d.onclick=()=>confirmBox("Discard the paused attempt?","Your answers in that attempt will be lost.",()=>{store(SAVE,null);home()},"Discard","Cancel")}
 addEventListener("pagehide",saveRun);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)saveRun()});
+
+/* ---------- progress: mistakes and strength ---------- */
+function stats(){let st=store(STATS);if(!st){st={};(store("ccarp-miss")||[]).forEach(k=>st[k]={r:0,w:1,last:0,t:0});store(STATS,st)}return st}
+function record(src,ok){const st=stats(),e=st[src]||{r:0,w:0};if(ok)e.r++;else e.w++;e.last=ok?1:0;e.t=Date.now();st[src]=e;store(STATS,st)}
+function missedPill(src){if(S&&S.done)return "";const e=stats()[src];return e&&e.w?`<span class="pill warn" title="Times you have got this question wrong before">Missed ${e.w}×</span>`:""}
+function qBySrc(src){const [i,j]=String(src).split("-").map(Number);return BANK[i]&&BANK[i][j]?{q:BANK[i][j],i,j}:null}
+function band(p,n){if(n<5)return["","Too few answers"];return p>=.85?["good","Strong"]:p>=PASS?["good","Pass level"]:p>=.6?["warn","Needs work"]:["bad","Weak"]}
+function progressHome(){const st=stats(),dom={};let R=0,W=0;
+  Object.entries(st).forEach(([k,e])=>{const x=qBySrc(k);if(!x)return;const d=x.q.d;dom[d]=dom[d]||[0,0];dom[d][0]+=e.r;dom[d][1]+=e.w;R+=e.r;W+=e.w});
+  const rows=KEYS.map(k=>{const [r,w]=dom[k]||[0,0],n=r+w,p=n?r/n:0;return{k,r,w,n,p}}).sort((a,b)=>(a.n?a.p:2)-(b.n?b.p:2));
+  const strength=rows.map(x=>{const [c,l]=band(x.p,x.n);return `<span>${esc(DOM[x.k][0])} <span class="small muted">· ${DOM[x.k][1]}% of exam</span></span><span class="num">${x.n?Math.round(x.p*100)+"%":"–"}</span><div class="meter"><i style="width:${x.p*100}%;background:var(${x.p>=PASS?"--good":x.p>=.6?"--warn":"--bad"})"></i><b></b></div><span class="small muted" style="grid-column:1/-1;margin:-6px 0 8px">${x.n?`${x.r} right · ${x.w} wrong`:"Not answered yet"}${l&&x.n?` · <span class="pill ${c}">${l}</span>`:""}</span>`}).join("");
+  const all=Object.entries(st).filter(([k,e])=>e.w>0&&qBySrc(k)).map(([k,e])=>({k,e,...qBySrc(k)}));
+  const open=all.filter(x=>!x.e.last),list=(mistFilter==="open"?open:all).sort((a,b)=>b.e.w-a.e.w||b.e.t-a.e.t);
+  const items=list.map(({k,e,q,i,j})=>`<details class="mist"><summary><span class="row" style="justify-content:space-between"><span class="small muted">${esc(DOM[q.d][0])} · Mock ${i+1}</span><span class="row" style="gap:6px"><span class="pill bad">Missed ${e.w}×</span>${e.r?`<span class="pill good">Right ${e.r}×</span>`:""}${e.last?`<span class="pill good">Fixed</span>`:""}</span></span><span class="q">${esc(q.q)}</span></summary>
+    <div class="body"><p><strong>Answer: </strong>${q.o.slice(0,q.k).map(esc).join(" <em>and</em> ")}</p><p class="small">${esc(q.x)}</p></div></details>`).join("");
+  return `<section class="card stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><h3>Strength index</h3>${R+W?`<span class="pill ${R/(R+W)>=PASS?"good":"bad"}">Overall ${Math.round(R/(R+W)*100)}% · ${R+W} answers</span>`:""}</div>
+  <p class="small muted">Every answer you give in mocks and drills counts. Weakest areas are at the top. The black tick marks the ~72% pass line.</p>
+  ${R+W?`<div class="dom">${strength}</div>`:`<p class="muted">Answer some questions in a mock or drill and your strengths will show here.</p>`}</section>
+  <section class="stack"><div class="row" style="justify-content:space-between"><h2>Running list of mistakes</h2><span class="small muted">${open.length} still to fix · ${all.length} ever missed</span></div>
+  <div class="seg" role="group" aria-label="Filter mistakes"><button data-mf="open" aria-pressed="${mistFilter==="open"}">Still to fix</button><button data-mf="all" aria-pressed="${mistFilter==="all"}">All mistakes</button></div>
+  <p class="small muted">Most-missed first. Tap a question to see the answer. A question moves to “Fixed” once you get it right on a later attempt.</p>
+  ${items||`<p class="muted">${all.length?"Nothing left to fix. Well done.":"No mistakes recorded yet."}</p>`}
+  ${open.length?`<div class="row"><button class="btn primary" data-cards="miss">Flashcards for my missed questions</button></div>`:""}
+  ${Object.keys(st).length?`<div class="row"><button class="btn ghost small" id="resetStats">Reset progress</button></div>`:""}</section>`}
+function wireProgress(){app.querySelectorAll("[data-mf]").forEach(b=>b.onclick=()=>{mistFilter=b.dataset.mf;home()});
+  const r=$("#resetStats");if(r)r.onclick=()=>confirmBox("Reset your progress?","This clears the strength index and the list of mistakes. Mock scores are kept.",()=>{store(STATS,{});home()},"Reset","Cancel")}
 
 /* ---------- study notes ---------- */
 const mockOrder=i=>shuffle(BANK[i],1000+i);

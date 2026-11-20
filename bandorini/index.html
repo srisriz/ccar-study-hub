@@ -36,7 +36,7 @@ button:focus-visible,.opt:focus-within,summary:focus-visible{outline:3px solid v
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 14px;font-weight:500;min-height:44px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
 .btn:disabled{opacity:.45;cursor:not-allowed} .btn.ghost{background:transparent}
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px}
 .tabs button{border:0;background:transparent;border-radius:7px;padding:10px 4px;font-weight:500;min-height:44px}
 .tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
 .grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
@@ -81,6 +81,15 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .flash{display:flex;flex-direction:column;gap:12px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 18px;min-height:240px;justify-content:center}
 .flash .front{font-family:var(--display);font-size:1.2rem;font-weight:600;line-height:1.35}
 .flash.on{border-color:var(--accent)} .flash .back{font-size:1.02rem;font-weight:600;color:var(--accent);border-top:1px solid var(--line);padding-top:12px}
+.mist{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0}
+.mist summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.mist summary::-webkit-details-marker{display:none}
+.mist[open] summary{border-bottom:1px solid var(--line)}
+.mist .body{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.mist .q{font-weight:500}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.85rem;min-height:36px}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
 .weights{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.9rem;font-variant-numeric:tabular-nums}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -93,14 +102,15 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 const DN={1:["Agentic Architecture & Orchestration",27],2:["Tool Design & MCP Integration",18],3:["Claude Code Configuration & Workflows",20],4:["Prompt Engineering & Structured Output",20],5:["Context Management & Reliability",15]};
 const DK=["1","2","3","4","5"],PASS=0.72,$=s=>document.querySelector(s),app=$("#app"),L="ABCDEF",NUMW=["","ONE","TWO","THREE","FOUR"];
 let T=[],ST=null,S=null,C=null,timerId=null,tab="tests";
-const SAVE="bando-paused";
+const SAVE="bando-paused", STATS="bando-stats";
+let mistFilter="open";
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function rng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
 function shuffle(arr,seed){const r=rng(seed),a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||"null");localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
 async function loadData(){const parts=await Promise.all(Array.from({length:4},(_,i)=>fetch("d."+i).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})));let b=new Uint8Array(parts.reduce((a,x)=>a+x.byteLength,0));let o=0;for(const x of parts){b.set(new Uint8Array(x),o);o+=x.byteLength}b=await CCXAuth.open(b);let t;
 if(b[0]===0x1f&&b[1]===0x8b){t=await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"))).text()}else t=new TextDecoder().decode(b);return JSON.parse(t)}
-loadData().then(({tests:t,study:s})=>{T=t;ST=s;T.forEach(x=>x.qs.forEach((q,j)=>q.key=x.id+":"+j));const h=location.hash.slice(1);if(["tests","notes","cards"].includes(h))tab=h;home()})
+loadData().then(({tests:t,study:s})=>{T=t;ST=s;T.forEach(x=>x.qs.forEach((q,j)=>q.key=x.id+":"+j));const h=location.hash.slice(1);if(["tests","notes","cards","progress"].includes(h))tab=h;home()})
 .catch(e=>{if(e==="auth"){CCXAuth.toLogin();return}app.innerHTML='<div class="card"><h2>The kit did not load</h2><p class="muted">Reload the page. If it still fails, ask Claude to republish it.</p></div>'});
 
 function home(){
@@ -114,6 +124,7 @@ function home(){
   else if(tab==="notes") body=`<section class="card stack"><h3>These materials are for CCAR-F, not CCAR-P</h3><p class="small">Your booked exam is the Professional (CCAR-P). The overlap is large: agent patterns, MCP and tool design, Claude Code configuration, structured output, context and escalation. CCAR-F goes deeper on hands-on mechanics (stop_reason, tool_choice, hook events, CLI flags, file locations). CCAR-P adds governance and compliance, evaluation and A/B testing, stakeholder communication and business value, which these notes do not cover. Use them to sharpen Integration, Developer Productivity and design questions.</p></section>
    <div class="grid2">${DK.map(k=>`<button class="tile" data-notes="${k}"><span class="t">${k}. ${DN[k][0]}</span><span class="small muted">${DN[k][1]}% of CCAR-F · ${ST.domains[k].points.length} topics · traps</span></button>`).join("")}</div>
    <p class="small muted">Written from your exam guide, Study Notebook and Complete Study Booklet. Topics the booklet adds beyond the official guide are labelled “booklet”.</p>`;
+  else if(tab==="progress") body=progressHome();
   else body=`<p class="small muted">Answer in your head, tap to check. “Again” sends the card to the back.</p>
    <div class="grid2"><button class="tile" data-cards="miss" ${miss?"":"disabled"}><span class="t">My missed questions</span><span class="small muted">${miss?miss+" cards from your tests":"Fills up as you take the tests"}</span></button>
    <button class="tile" data-cards="c-all"><span class="t">All concepts</span><span class="small muted">${ST.cards.length} cards</span></button></div>
@@ -122,12 +133,12 @@ function home(){
   app.innerHTML=`<div class="stack" style="gap:20px"><header class="stack" style="gap:6px"><a class="small" href="/" style="color:var(--accent)">← All study kits</a><span class="brand">BANDORINI</span><h1>Bandorini CCAR-F Study Kit</h1>
    <p class="muted">Your two Bandorini mock papers and the exam guide's sample questions as timed tests, plus notes and flashcards from your study booklet and notebook.</p></header>
    ${pausedCard()}
-   <div class="tabs" role="tablist">${[["tests","Tests"],["notes","Notes"],["cards","Flashcards"]].map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${tab==k}">${l}</button>`).join("")}</div>${body}</div>`;
+   <div class="tabs" role="tablist">${[["tests","Tests"],["notes","Notes"],["cards","Flashcards"],["progress","Progress"]].map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${tab==k}">${l}</button>`).join("")}</div>${body}</div>`;
   app.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;try{history.replaceState(null,"","#"+tab)}catch(e){}home()});
   app.querySelectorAll("[data-test]").forEach(b=>b.onclick=()=>startTest(b.dataset.test));
   app.querySelectorAll("[data-notes]").forEach(b=>b.onclick=()=>openNotes(b.dataset.notes));
   app.querySelectorAll("[data-cards]").forEach(b=>b.onclick=()=>startCards(b.dataset.cards));
-  wirePaused();
+  wirePaused();wireProgress();
 }
 
 /* tests */
@@ -145,7 +156,7 @@ function render(){
   app.innerHTML=`<div class="bar"><div class="row"><button class="btn ghost small" id="quit">${fin?"← Results":"Exit"}</button><strong class="small">${esc(S.t.title)}</strong>${!fin?`<span class="row" style="gap:10px"><span class="timer" id="timer">${fmt(S.end-Date.now())}</span><button class="btn small" id="pause">Pause</button></span>`:`<span class="small muted">${S.cur+1}/${n}</span>`}</div><div class="prog"><i style="width:${(fin?S.cur+1:answered)/n*100}%"></i></div></div>
   <div class="stack" style="gap:16px">
    ${q.s?`<details class="scen" ${q.s!==prev?"open":""}><summary>${esc(q.s)}</summary>${sc?`<p>${esc(sc)}</p>`:""}</details>`:""}
-   <div class="row" style="justify-content:space-between"><span class="small muted">Question ${S.cur+1} of ${n}${rev?` · Domain ${q.d}: ${DN[q.d][0]}`:""}</span>${status}</div>
+   <div class="row" style="justify-content:space-between"><span class="small muted">Question ${S.cur+1} of ${n}${rev?` · Domain ${q.d}: ${DN[q.d][0]}`:""}</span><span class="row" style="gap:6px">${rev?"":missedPill(q.key)}${status}</span></div>
    <p class="qtext">${esc(q.q)}</p>
    ${multi?`<p class="small"><strong>Select ${NUMW[k]||k}.</strong>${rev?"":" Your answer locks once you have picked "+(NUMW[k]||k).toLowerCase()+"."}</p>`:""}
    <div class="opts">${opts}</div>
@@ -155,7 +166,7 @@ function render(){
   </div>
   <nav class="nav"><div class="in"><button class="btn" id="prev" ${S.cur?"":"disabled"}>Previous</button>${S.cur<n-1?`<button class="btn primary" id="next">Next</button>`:fin?`<button class="btn primary" id="res">Results</button>`:`<button class="btn primary" id="sub">Submit test</button>`}</div></nav>`;
   app.querySelectorAll(".opt input").forEach(inp=>inp.onchange=()=>{if(S.done||S.lock[S.cur])return;const i=+inp.dataset.i;let s=S.sel[S.cur];
-    if(multi){s=s.includes(i)?s.filter(x=>x!==i):[...s,i];if(s.length>k)s=s.slice(-k)}else s=[i];S.sel[S.cur]=s;if(s.length===k)S.lock[S.cur]=true;render()});
+    if(multi){s=s.includes(i)?s.filter(x=>x!==i):[...s,i];if(s.length>k)s=s.slice(-k)}else s=[i];S.sel[S.cur]=s;if(s.length===k){S.lock[S.cur]=true;record(q.key,correct(q,s))}render()});
   const on=(id,f)=>{const e=$("#"+id);if(e)e.onclick=f};
   on("prev",()=>go(S.cur-1));on("next",()=>go(S.cur+1));on("res",results);on("flag",()=>{S.flag[S.cur]=!S.flag[S.cur];render()});
   on("sub",()=>{const un=n-answered,fl=S.flag.filter(Boolean).length;confirmBox("Submit this test?",`${un?un+" unanswered. ":""}${fl?fl+" flagged. ":""}You can review every answer afterwards.`,finish)});
@@ -214,6 +225,32 @@ function wirePaused(){const r=$("#resumeRun");if(r)r.onclick=resumeRun;
   const d=$("#dropRun");if(d)d.onclick=()=>confirmBox("Discard the paused attempt?","Your answers in that attempt will be lost.",()=>{store(SAVE,null);home()},"Discard","Cancel")}
 addEventListener("pagehide",saveRun);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)saveRun()});
+
+/* progress: mistakes and strength */
+function stats(){let st=store(STATS);if(!st){st={};(store("bando-miss")||[]).forEach(k=>st[k]={r:0,w:1,last:0,t:0});store(STATS,st)}return st}
+function record(key,ok){const st=stats(),e=st[key]||{r:0,w:0};if(ok)e.r++;else e.w++;e.last=ok?1:0;e.t=Date.now();st[key]=e;store(STATS,st)}
+function missedPill(key){const e=stats()[key];return e&&e.w?`<span class="pill warn" title="Times you have got this question wrong before">Missed ${e.w}×</span>`:""}
+function qByKey(key){const [id,j]=String(key).split(":");const t=T.find(x=>x.id===id);return t&&t.qs[+j]?{q:t.qs[+j],t,j:+j}:null}
+function band(p,n){if(n<5)return["","Too few answers"];return p>=.85?["good","Strong"]:p>=PASS?["good","Pass level"]:p>=.6?["warn","Needs work"]:["bad","Weak"]}
+function progressHome(){const st=stats(),dom={};let R=0,W=0;
+  Object.entries(st).forEach(([k,e])=>{const x=qByKey(k);if(!x)return;const d=String(x.q.d);dom[d]=dom[d]||[0,0];dom[d][0]+=e.r;dom[d][1]+=e.w;R+=e.r;W+=e.w});
+  const rows=DK.map(k=>{const [r,w]=dom[k]||[0,0],n=r+w,p=n?r/n:0;return{k,r,w,n,p}}).sort((a,b)=>(a.n?a.p:2)-(b.n?b.p:2));
+  const strength=rows.map(x=>{const [c,l]=band(x.p,x.n);return `<span>${x.k}. ${DN[x.k][0]} <span class="small muted">· ${DN[x.k][1]}%</span></span><span class="num">${x.n?Math.round(x.p*100)+"%":"–"}</span><div class="meter"><i style="width:${x.p*100}%;background:var(${x.p>=PASS?"--good":x.p>=.6?"--warn":"--bad"})"></i><b></b></div><span class="small muted" style="grid-column:1/-1;margin:-6px 0 8px">${x.n?`${x.r} right · ${x.w} wrong`:"Not answered yet"}${l&&x.n?` · <span class="pill ${c}">${l}</span>`:""}</span>`}).join("");
+  const all=Object.entries(st).filter(([k,e])=>e.w>0&&qByKey(k)).map(([k,e])=>({k,e,...qByKey(k)}));
+  const open=all.filter(x=>!x.e.last),list=(mistFilter==="open"?open:all).sort((a,b)=>b.e.w-a.e.w||b.e.t-a.e.t);
+  const items=list.map(({e,q,t,j})=>`<details class="mist"><summary><span class="row" style="justify-content:space-between"><span class="small muted">${esc(t.title)} · Q${j+1} · Domain ${q.d}</span><span class="row" style="gap:6px"><span class="pill bad">Missed ${e.w}×</span>${e.r?`<span class="pill good">Right ${e.r}×</span>`:""}${e.last?`<span class="pill good">Fixed</span>`:""}</span></span><span class="q">${esc(q.q.length>220?q.q.slice(0,220)+"…":q.q)}</span></summary>
+    <div class="body">${q.q.length>220?`<p>${esc(q.q)}</p>`:""}<p><strong>Answer: </strong>${q.a.map(i=>L[i]+". "+esc(q.o[i])).join(" <em>and</em> ")}</p><p class="small">${esc(q.x)}</p></div></details>`).join("");
+  return `<section class="card stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><h3>Strength index</h3>${R+W?`<span class="pill ${R/(R+W)>=PASS?"good":"bad"}">Overall ${Math.round(R/(R+W)*100)}% · ${R+W} answers</span>`:""}</div>
+   <p class="small muted">Every answer you give in the tests counts. Weakest areas are at the top. The black tick marks the ~72% pass line.</p>
+   ${R+W?`<div class="dom">${strength}</div>`:`<p class="muted">Answer some test questions and your strengths will show here.</p>`}</section>
+   <section class="stack"><div class="row" style="justify-content:space-between"><h2>Running list of mistakes</h2><span class="small muted">${open.length} still to fix · ${all.length} ever missed</span></div>
+   <div class="seg" role="group" aria-label="Filter mistakes"><button data-mf="open" aria-pressed="${mistFilter==="open"}">Still to fix</button><button data-mf="all" aria-pressed="${mistFilter==="all"}">All mistakes</button></div>
+   <p class="small muted">Most-missed first. Tap a question to see the answer. A question moves to “Fixed” once you get it right on a later attempt.</p>
+   ${items||`<p class="muted">${all.length?"Nothing left to fix. Well done.":"No mistakes recorded yet."}</p>`}
+   ${open.length?`<div class="row"><button class="btn primary" data-cards="miss">Flashcards for my missed questions</button></div>`:""}
+   ${Object.keys(st).length?`<div class="row"><button class="btn ghost small" id="resetStats">Reset progress</button></div>`:""}</section>`}
+function wireProgress(){app.querySelectorAll("[data-mf]").forEach(b=>b.onclick=()=>{mistFilter=b.dataset.mf;home()});
+  const r=$("#resetStats");if(r)r.onclick=()=>confirmBox("Reset your progress?","This clears the strength index and the list of mistakes. Test scores are kept.",()=>{store(STATS,{});home()},"Reset","Cancel")}
 
 /* notes */
 function page(title,sub,body){window.scrollTo(0,0);app.innerHTML=`<div class="stack" style="gap:18px"><button class="btn ghost" id="back" style="align-self:flex-start">← Back</button><header class="stack" style="gap:6px"><span class="brand">BANDORINI</span><h1>${title}</h1>${sub?`<p class="muted">${sub}</p>`:""}</header>${body}</div>`;$("#back").onclick=()=>{tab="notes";home()}}
