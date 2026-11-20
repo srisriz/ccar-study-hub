@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCAR-P Question Bank</title>
+<script src="/auth.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: an exam-hall console. Single column, question first, quiet chrome, domain colour only where it carries meaning. */
+:root{
+  --bg:#f4f5f7; --surface:#ffffff; --ink:#18212f; --muted:#5b6678; --line:#d9dee6;
+  --accent:#1d5a73; --accent-soft:#e3eef3;
+  --good:#1e7b4a; --good-soft:#e3f4ea; --bad:#b3261e; --bad-soft:#fbe7e5; --warn:#9a6400; --warn-soft:#fbf1dc;
+  --display:"Source Serif 4", Georgia, serif; --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11161e; --surface:#19202b; --ink:#e7ebf1; --muted:#9aa5b5; --line:#2c3644;
+  --accent:#6fb3cf; --accent-soft:#1c3340;
+  --good:#5cc48b; --good-soft:#163525; --bad:#f08a80; --bad-soft:#3d1d1b; --warn:#e3b158; --warn-soft:#3a2d14; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#11161e; --surface:#19202b; --ink:#e7ebf1; --muted:#9aa5b5; --line:#2c3644;
+  --accent:#6fb3cf; --accent-soft:#1c3340;
+  --good:#5cc48b; --good-soft:#163525; --bad:#f08a80; --bad-soft:#3d1d1b; --warn:#e3b158; --warn-soft:#3a2d14; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body);-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 96px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:1.9rem} h2{font-size:1.3rem} h3{font-size:1.05rem}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.875rem}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.opt:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 14px;font-weight:500;min-height:44px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tabs button{flex:1;border:0;background:transparent;border-radius:7px;padding:10px;font-weight:500;min-height:44px}
+.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;min-height:44px}
+.tile:hover{border-color:var(--accent)}
+.tile .t{font-weight:600}
+.pill{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-variant-numeric:tabular-nums}
+.pill.good{background:var(--good-soft);color:var(--good)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.weights{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.9rem;font-variant-numeric:tabular-nums}
+/* exam */
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);margin-bottom:16px}
+.bar .row{justify-content:space-between}
+.timer{font-variant-numeric:tabular-nums;font-weight:600}
+.timer.low{color:var(--bad)}
+.prog{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:8px}
+.prog i{display:block;height:100%;background:var(--accent)}
+.qtext{font-size:1.05rem;font-weight:500}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 14px;cursor:pointer;min-height:44px}
+.opt input{margin-top:4px;width:18px;height:18px;flex:none;accent-color:var(--accent)}
+.opt .k{font-weight:600;color:var(--muted);flex:none;width:1.2em}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.right{border-color:var(--good);background:var(--good-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.why{border-left:3px solid var(--accent);padding:8px 12px;background:var(--surface);border-radius:0 8px 8px 0}
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+.nav .in{max-width:760px;margin:0 auto;display:flex;gap:8px}
+.nav .in .btn{flex:1}
+.qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px}
+.qgrid button{min-height:40px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-variant-numeric:tabular-nums;font-size:.85rem;position:relative}
+.qgrid button.ans{background:var(--accent-soft);border-color:var(--accent)}
+.qgrid button.cur{outline:2px solid var(--ink)}
+.qgrid button.flag::after{content:"";position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--warn)}
+.qgrid button.r{background:var(--good-soft);border-color:var(--good)} .qgrid button.w{background:var(--bad-soft);border-color:var(--bad)}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);max-width:420px;width:calc(100% - 32px);padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+/* results */
+.score{font-family:var(--display);font-size:3rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.dom{display:grid;grid-template-columns:1fr 64px;gap:4px 10px;align-items:center;font-size:.9rem}
+.meter{grid-column:1/-1;height:8px;border-radius:4px;background:var(--line);overflow:hidden;position:relative;margin-bottom:8px}
+.meter i{display:block;height:100%}
+.meter b{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink);left:72%}
+.num{font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
+.flagbtn[aria-pressed="true"]{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr)}
+.tabs button{padding:10px 2px;font-size:.88rem;min-width:0}
+.list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;max-width:68ch}
+.trap{border-left:4px solid var(--warn)}
+.tile:disabled{opacity:.55;cursor:default}
+.flash{display:flex;flex-direction:column;gap:12px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 18px;min-height:240px;justify-content:center}
+.flash .front{font-family:var(--display);font-size:1.25rem;font-weight:600;line-height:1.35}
+.flash.on{border-color:var(--accent)}
+.flash .back{font-size:1.05rem;font-weight:600;color:var(--accent);border-top:1px solid var(--line);padding-top:12px}
+.day.today{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.day.done{opacity:.6}
+.day input{width:20px;height:20px;accent-color:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<script>if(!CCXAuth.signedIn())CCXAuth.toLogin()</script>
+<main class="wrap" id="app"><p class="muted">Loading the question bank…</p></main>
+<dialog id="dlg"><div class="stack"><h3 id="dlgT"></h3><p id="dlgB" class="muted"></p><div class="row" style="justify-content:flex-end"><button class="btn ghost" id="dlgNo">Keep going</button><button class="btn primary" id="dlgYes">Submit</button></div></div></dialog>
+<script>
+const DOM={SD:["Solution Design & Architecture",17],MP:["Claude Models, Prompting & Context Engineering",13],IN:["Integration",19],EV:["Evaluation, Testing & Optimization",16],GV:["Governance, Safety & Risk Management",14],SC:["Stakeholder Communication & Lifecycle Management",14],DP:["Developer Productivity & Operational Enablement",7]};
+const KEYS=Object.keys(DOM), PASS=0.72, $=s=>document.querySelector(s), app=$("#app");
+let BANK=[], S=null, timerId=null, homeTab="plan";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function rng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(arr,seed){const r=rng(seed),a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||"null");localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+function prep(q,seed){const idx=shuffle(q.o.map((_,i)=>i),seed);return{...q,opts:idx.map(i=>q.o[i]),ans:idx.map((i,p)=>i<q.k?p:-1).filter(p=>p>=0)}}
+
+let STUDY=null;
+async function loadData(){const parts=await Promise.all(Array.from({length:5},(_,i)=>fetch("d."+i).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})));let b=new Uint8Array(parts.reduce((a,x)=>a+x.byteLength,0));let o=0;for(const x of parts){b.set(new Uint8Array(x),o);o+=x.byteLength}b=await CCXAuth.open(b);let t;
+if(b[0]===0x1f&&b[1]===0x8b){t=await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"))).text()}else t=new TextDecoder().decode(b);return JSON.parse(t)}
+loadData().then(({bank:b,study:s})=>{BANK=b;STUDY=s;BANK.forEach((t,i)=>t.forEach((q,j)=>q.src=i+"-"+j));const h=location.hash.slice(1);if(["mocks","drills","study","cards","plan"].includes(h))homeTab=h;home()}).catch(e=>{if(e==="auth"){CCXAuth.toLogin();return}app.innerHTML='<div class="card"><h2>The question bank did not load</h2><p class="muted">Reload the page. If it still fails, ask Claude to republish the bank.</p></div>'});
+
+function home(){
+  clearInterval(timerId);S=null;window.scrollTo(0,0);
+  const best=store("ccarp-best")||{};
+  const mocks=BANK.map((t,i)=>{const b=best["m"+i];return `<button class="tile" data-mock="${i}"><span class="t">Mock exam ${i+1}</span><span class="small muted">63 questions · 120 minutes</span>${b!=null?`<span class="pill ${b>=PASS?"good":"bad"}">Best ${Math.round(b*100)}%</span>`:`<span class="pill">Not taken</span>`}</button>`}).join("");
+  const counts={};BANK.flat().forEach(q=>counts[q.d]=(counts[q.d]||0)+1);
+  const drills=KEYS.map(k=>{const b=best["d"+k];return `<button class="tile" data-drill="${k}"><span class="t">${esc(DOM[k][0])}</span><span class="small muted">${DOM[k][1]}% of exam · ${counts[k]} questions</span>${b!=null?`<span class="pill ${b>=PASS?"good":"bad"}">Last ${Math.round(b*100)}%</span>`:""}</button>`}).join("");
+  app.innerHTML=`<div class="stack" style="gap:20px">
+  <header class="stack" style="gap:6px"><a class="small" href="/" style="color:var(--accent)">← All study kits</a><span class="pill" style="align-self:flex-start">CCAR-P · Claude Certified Architect – Professional</span><h1>Study kit and question bank</h1>
+  <p class="muted">A two-week plan to 30 November, notes for every domain and every mock, flashcards, and 378 original questions written to the seven official domains. Unofficial practice material, not Anthropic exam content.</p></header>
+  <div class="tabs" role="tablist">${[["plan","Plan"],["study","Notes"],["cards","Flashcards"],["mocks","Mocks"],["drills","Drills"]].map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${homeTab==k}">${l}</button>`).join("")}</div>
+  ${homeTab=="mocks"?`<p class="small muted">Timed like the real exam. Each answer locks as soon as you give it, and the correct answer and explanation appear straight away. The pass line shown is about 72%, a rough guide to the 720/1000 scaled pass mark.</p><div class="grid2">${mocks}<button class="tile" data-mix="1"><span class="t">Mixed mock</span><span class="small muted">63 questions · 120 minutes · new mix each time, missed questions first</span>${best.mix!=null?`<span class="pill ${best.mix>=PASS?"good":"bad"}">Last ${Math.round(best.mix*100)}%</span>`:`<span class="pill">Use after Mock 6</span>`}</button></div>`
+  :homeTab=="drills"?`<p class="small muted">Untimed. 15 random questions from one domain. Each answer locks when you give it and shows the correct answer and explanation.</p><div class="grid2">${drills}</div>`
+  :homeTab=="study"?studyHome():homeTab=="cards"?cardsHome():planHome()}
+  ${homeTab=="mocks"||homeTab=="drills"?`<section class="card stack"><h3>Exam blueprint</h3><div class="weights">${KEYS.map(k=>`<span>${esc(DOM[k][0])}</span><span class="num">${DOM[k][1]}%</span>`).join("")}</div><p class="small muted">Source: CCAR-P Exam Guide v1.0 (July 2026). 63 questions, 120 minutes, pass at 720 on a 100–1,000 scale.</p></section>`:""}
+  </div>`;
+  app.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{homeTab=b.dataset.tab;try{history.replaceState(null,"","#"+homeTab)}catch(e){}home()});
+  wireExtras();
+  app.querySelectorAll("[data-mock]").forEach(b=>b.onclick=()=>startMock(+b.dataset.mock));
+  app.querySelectorAll("[data-drill]").forEach(b=>b.onclick=()=>startDrill(b.dataset.drill));
+}
+
+function startMock(i){
+  const qs=shuffle(BANK[i],1000+i).map((q,j)=>prep(q,i*997+j*31+7));
+  S={mode:"mock",id:"m"+i,title:`Mock exam ${i+1}`,qs,cur:0,sel:qs.map(()=>[]),flag:qs.map(()=>false),lock:qs.map(()=>false),end:Date.now()+120*60000,done:false};
+  timerId=setInterval(tick,1000);render();
+}
+function startMixed(){
+  const seed=Date.now()%100000,miss=new Set(store("ccarp-miss")||[]),all=BANK.flat(),tgt={SD:11,MP:8,IN:12,EV:10,GV:9,SC:9,DP:4};
+  let pick=[];KEYS.forEach(k=>{const pool=shuffle(all.filter(q=>q.d===k),seed+k.charCodeAt(0));pool.sort((a,b)=>miss.has(b.src)-miss.has(a.src));pick=pick.concat(pool.slice(0,tgt[k]))});
+  const qs=shuffle(pick,seed).map((q,j)=>prep(q,seed+j*17));
+  S={mode:"mock",id:"mix",title:"Mixed mock",qs,cur:0,sel:qs.map(()=>[]),flag:qs.map(()=>false),lock:qs.map(()=>false),end:Date.now()+120*60000,done:false};
+  timerId=setInterval(tick,1000);render();
+}
+function startDrill(k){
+  const pool=BANK.flat().filter(q=>q.d===k),seed=Date.now()%100000;
+  const qs=shuffle(pool,seed).slice(0,15).map((q,j)=>prep(q,seed+j*13));
+  S={mode:"drill",id:"d"+k,title:DOM[k][0],qs,cur:0,sel:qs.map(()=>[]),checked:qs.map(()=>false),flag:qs.map(()=>false),lock:qs.map(()=>false),done:false};
+  render();
+}
+function fmt(ms){const s=Math.max(0,Math.round(ms/1000));return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`}
+function tick(){if(!S||S.mode!=="mock"||S.done)return;const left=S.end-Date.now();const el=$("#timer");if(el){el.textContent=fmt(left);el.classList.toggle("low",left<600000)}if(left<=0)finish()}
+const correct=(q,sel)=>sel.length===q.ans.length&&q.ans.every(a=>sel.includes(a));
+
+function render(){
+  const q=S.qs[S.cur],sel=S.sel[S.cur],n=S.qs.length,answered=S.sel.filter(s=>s.length).length;
+  const reveal=S.done||S.lock[S.cur];
+  const multi=q.k===2;
+  const opts=q.opts.map((o,i)=>{let c=sel.includes(i)?"sel":"";if(reveal){if(q.ans.includes(i))c="right";else if(sel.includes(i))c="wrong"}
+    return `<label class="opt ${c}" for="o${i}"><input id="o${i}" type="${multi?"checkbox":"radio"}" name="opt" ${sel.includes(i)?"checked":""} ${reveal?"disabled":""} data-i="${i}"><span class="k">${"ABCDE"[i]}</span><span>${esc(o)}</span></label>`}).join("");
+  const status=reveal?(correct(q,sel)?`<span class="pill good">Correct</span>`:sel.length?`<span class="pill bad">Incorrect · answer ${q.ans.map(i=>"ABCDE"[i]).join(", ")}</span>`:`<span class="pill warn">Not answered · answer ${q.ans.map(i=>"ABCDE"[i]).join(", ")}</span>`):"";
+  app.innerHTML=`<div class="bar"><div class="row"><button class="btn ghost small" id="quit">${S.done?"← Results":"Exit"}</button><strong class="small">${esc(S.title)}</strong>${S.mode==="mock"&&!S.done?`<span class="timer" id="timer">${fmt(S.end-Date.now())}</span>`:`<span class="small muted">${S.cur+1}/${n}</span>`}</div><div class="prog"><i style="width:${(S.done?S.cur+1:answered)/n*100}%"></i></div></div>
+  <div class="stack" style="gap:16px">
+   <div class="row" style="justify-content:space-between"><span class="small muted">Question ${S.cur+1} of ${n} · ${esc(DOM[q.d][0])}</span>${status}</div>
+   <p class="qtext">${esc(q.q)}</p>
+   ${multi?`<p class="small muted">Choose two answers.${reveal?"":" Your answer locks once you have picked two."}</p>`:""}
+   <div class="opts">${opts}</div>
+   ${reveal?`<div class="why"><strong>Why: </strong>${esc(q.x)}</div>`:""}
+   <div class="row">${!S.done?`<button class="btn flagbtn" id="flag" aria-pressed="${S.flag[S.cur]}">${S.flag[S.cur]?"Flagged for review":"Flag for review"}</button>`:""}
+   </div>
+   ${S.mode==="mock"?`<details class="card"><summary class="small" style="cursor:pointer;min-height:24px">All questions · ${answered} answered${S.done?"":` · ${S.flag.filter(Boolean).length} flagged`}</summary><div class="qgrid" style="margin-top:12px">${S.qs.map((qq,i)=>{let c=i===S.cur?"cur ":"";if(S.done||S.lock[i])c+=correct(qq,S.sel[i])?"r ":"w ";if(!S.done){if(S.flag[i])c+="flag"}return `<button class="${c}" data-go="${i}" aria-label="Question ${i+1}">${i+1}</button>`}).join("")}</div></details>`:""}
+  </div>
+  <nav class="nav"><div class="in"><button class="btn" id="prev" ${S.cur?"":"disabled"}>Previous</button>${S.cur<n-1?`<button class="btn primary" id="next">Next</button>`:S.done?`<button class="btn primary" id="res">Results</button>`:`<button class="btn primary" id="sub">${S.mode==="mock"?"Submit exam":"See results"}</button>`}</div></nav>`;
+  app.querySelectorAll(".opt input").forEach(inp=>inp.onchange=()=>{if(S.done||S.lock[S.cur])return;const i=+inp.dataset.i;let s=S.sel[S.cur];
+    if(multi){s=s.includes(i)?s.filter(x=>x!==i):[...s,i];if(s.length>2)s=s.slice(-2)}else s=[i];S.sel[S.cur]=s;if(s.length===q.ans.length)S.lock[S.cur]=true;render()});
+  const on=(id,f)=>{const e=$("#"+id);if(e)e.onclick=f};
+  on("prev",()=>go(S.cur-1));on("next",()=>go(S.cur+1));on("res",results);
+  on("flag",()=>{S.flag[S.cur]=!S.flag[S.cur];render()});
+  on("check",()=>{S.checked[S.cur]=true;render()});
+  on("sub",()=>{if(S.mode==="drill")return finish();const un=n-answered,fl=S.flag.filter(Boolean).length;confirmBox("Submit this exam?",`${un?un+" unanswered. ":""}${fl?fl+" flagged. ":""}You can review every answer afterwards.`,finish)});
+  on("quit",()=>{if(S.done)return results();confirmBox("Leave this attempt?","Your answers in this attempt will not be saved.",home,"Leave")});
+  app.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(+b.dataset.go));
+}
+function go(i){S.cur=i;render();window.scrollTo(0,0)}
+function confirmBox(t,b,yes,label="Submit"){const d=$("#dlg");$("#dlgT").textContent=t;$("#dlgB").textContent=b;$("#dlgYes").textContent=label;$("#dlgYes").onclick=()=>{d.close();yes()};$("#dlgNo").onclick=()=>d.close();try{d.showModal()}catch(e){yes()}}
+
+function finish(){S.done=true;clearInterval(timerId);
+  if(S.mode!=="cards"){const miss=new Set(store("ccarp-miss")||[]);S.qs.forEach((q,i)=>{if(correct(q,S.sel[i]))miss.delete(q.src);else miss.add(q.src)});store("ccarp-miss",[...miss])}const sc=S.qs.filter((q,i)=>correct(q,S.sel[i])).length/S.qs.length;const best=store("ccarp-best")||{};
+  best[S.id]=S.mode==="mock"&&S.id!=="mix"?Math.max(best[S.id]||0,sc):sc;store("ccarp-best",best);results()}
+/* ---------- study notes ---------- */
+const mockOrder=i=>shuffle(BANK[i],1000+i);
+function studyHome(){
+  return `<div class="card stack"><h3>How to use the notes</h3><ul class="list">
+  <li><strong>Domain notes</strong> teach the whole syllabus. Read them before your first mock and again for any domain under 72%.</li>
+  <li><strong>Paper notes</strong> list the rule behind every question in one mock, numbered as in that mock. They contain the answers, so read them <em>after</em> you sit the paper.</li>
+  <li>When you review, say out loud why each wrong option is wrong. Most marks are lost to a plausible option that only <em>supports</em> the goal instead of enforcing it.</li></ul></div>
+  <h2>Domain notes</h2><div class="grid2">${KEYS.map(k=>`<button class="tile" data-notes="${k}"><span class="t">${esc(DOM[k][0])}</span><span class="small muted">${DOM[k][1]}% · ${STUDY.domains[k].points.length} topics · common traps</span></button>`).join("")}</div>
+  <h2>Paper notes</h2><div class="grid2">${BANK.map((_,i)=>`<button class="tile" data-paper="${i}"><span class="t">Mock exam ${i+1}</span><span class="small muted">63 rules, grouped by domain</span></button>`).join("")}</div>`;
+}
+function page(title,sub,body){window.scrollTo(0,0);app.innerHTML=`<div class="stack" style="gap:18px"><div class="row" style="justify-content:space-between"><button class="btn ghost" id="back">← Back</button></div><header class="stack" style="gap:6px"><h1>${title}</h1>${sub?`<p class="muted">${sub}</p>`:""}</header>${body}</div>`;$("#back").onclick=home}
+function openNotes(k){const d=STUDY.domains[k];
+  page(esc(DOM[k][0]),`${DOM[k][1]}% of the exam. ${esc(d.lead)}`,
+  `${d.points.map(([t,b])=>`<section class="note"><h3>${esc(t)}</h3><p>${esc(b)}</p></section>`).join("")}
+  <section class="card stack trap"><h3>Traps the exam sets</h3><ul class="list">${d.traps.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></section>
+  <div class="row"><button class="btn primary" data-cards="c-${k}">Flashcards for this domain</button><button class="btn" data-drillgo="${k}">Drill 15 questions</button></div>`);
+  wireExtras()}
+function openPaper(i){const ord=mockOrder(i);
+  const body=KEYS.map(k=>{const items=ord.map((q,n)=>({q,n})).filter(x=>x.q.d===k);
+    return `<section class="stack"><h2>${esc(DOM[k][0])} <span class="pill">${items.length}</span></h2>${items.map(({q,n})=>`<div class="note"><p class="small muted">Q${n+1} · ${esc(q.q)}</p><p><strong>${q.o.slice(0,q.k).map(esc).join(" <em>and</em> ")}</strong></p><p class="small">${esc(q.x)}</p></div>`).join("")}</section>`}).join("");
+  page(`Mock exam ${i+1}: paper notes`,`Question numbers match Mock exam ${i+1}. Contains the answers, so read it after you sit the paper.`,body+`<div class="row"><button class="btn primary" data-cards="m-${i}">Flashcards for this paper</button></div>`);wireExtras()}
+
+/* ---------- flashcards ---------- */
+let C=null;
+function cardsHome(){const miss=(store("ccarp-miss")||[]).length;
+  return `<p class="small muted">Read the front, answer in your head, then tap to check. “Again” sends the card to the back of the deck.</p>
+  <div class="grid2"><button class="tile" data-cards="miss" ${miss?"":"disabled"}><span class="t">My missed questions</span><span class="small muted">${miss?miss+" cards from your mocks and drills":"Fills up as you take mocks and drills"}</span></button>
+  <button class="tile" data-cards="c-all"><span class="t">All concepts</span><span class="small muted">${STUDY.cards.length} requirement → mechanism cards</span></button></div>
+  <h2>Concepts by domain</h2><div class="grid2">${KEYS.map(k=>`<button class="tile" data-cards="c-${k}"><span class="t">${esc(DOM[k][0])}</span><span class="small muted">${STUDY.cards.filter(c=>c[2]===k).length} cards</span></button>`).join("")}</div>
+  <h2>Mock papers</h2><p class="small muted">Scenario on the front, answer and reason on the back. Best after you sit that mock.</p><div class="grid2">${BANK.map((_,i)=>`<button class="tile" data-cards="m-${i}"><span class="t">Mock exam ${i+1}</span><span class="small muted">63 cards</span></button>`).join("")}</div>`}
+function qCard(q,label){return{f:q.q,b:`${q.o.slice(0,q.k).join("  ·  ")}`,x:q.x,tag:label||DOM[q.d][0]}}
+function startCards(deck){let cards=[],title="";
+  if(deck==="miss"){const keys=store("ccarp-miss")||[];cards=keys.map(s=>{const [i,j]=s.split("-").map(Number);return BANK[i]&&BANK[i][j]?qCard(BANK[i][j],`Mock ${i+1} · ${DOM[BANK[i][j].d][0]}`):null}).filter(Boolean);title="My missed questions"}
+  else if(deck.startsWith("m-")){const i=+deck.slice(2);cards=mockOrder(i).map((q,n)=>qCard(q,`Q${n+1} · ${DOM[q.d][0]}`));title=`Mock exam ${i+1}`}
+  else{const k=deck.slice(2);cards=STUDY.cards.filter(c=>k==="all"||c[2]===k).map(c=>({f:c[0],b:c[1],tag:DOM[c[2]][0]}));title=k==="all"?"All concepts":DOM[k][0]}
+  C={deck,title,queue:shuffle(cards,Date.now()%99991),total:cards.length,known:0,flip:false};drawCard()}
+function drawCard(){window.scrollTo(0,0);
+  if(!C.queue.length){app.innerHTML=`<div class="stack" style="gap:18px"><button class="btn ghost" id="back" style="align-self:flex-start">← Back</button><section class="card stack"><h2>Deck complete</h2><p class="muted">You worked through all ${C.total} cards in ${esc(C.title)}.</p><div class="row"><button class="btn primary" id="redo">Shuffle and go again</button></div></section></div>`;$("#back").onclick=home;$("#redo").onclick=()=>startCards(C.deck);return}
+  const c=C.queue[0];
+  app.innerHTML=`<div class="stack" style="gap:16px"><div class="row" style="justify-content:space-between"><button class="btn ghost" id="back">← Back</button><span class="small muted">${esc(C.title)} · ${C.known}/${C.total} known</span></div>
+  <div class="prog"><i style="width:${C.known/C.total*100}%"></i></div>
+  <button class="flash ${C.flip?"on":""}" id="flip" aria-label="${C.flip?"Card back":"Show the answer"}"><span class="small muted">${esc(c.tag)}</span><span class="front">${esc(c.f)}</span>${C.flip?`<span class="back">${esc(c.b)}</span>${c.x?`<span class="small">${esc(c.x)}</span>`:""}`:`<span class="small muted">Tap to show the answer</span>`}</button>
+  ${C.flip?`<div class="row"><button class="btn" id="again" style="flex:1">Again</button><button class="btn primary" id="got" style="flex:1">Got it</button></div>`:""}</div>`;
+  $("#back").onclick=home;$("#flip").onclick=()=>{C.flip=!C.flip;drawCard()};
+  const g=$("#got");if(g)g.onclick=()=>{C.queue.shift();C.known++;C.flip=false;drawCard()};
+  const a=$("#again");if(a)a.onclick=()=>{C.queue.push(C.queue.shift());C.flip=false;drawCard()};
+}
+
+/* ---------- plan ---------- */
+const PLAN=[
+["2026-11-17","Tue 17 Nov","Mock 1: your baseline","Study: Governance and Integration notes, including the traps.|Mock (2 h): Mock exam 1, timed, no notes.","1 h + mock"],
+["2026-11-18","Wed 18 Nov","Mock 2","Study: Mock 1 paper notes for every miss and guess, then Evaluation notes.|Mock (2 h): Mock exam 2, timed, no notes.","1 h + mock"],
+["2026-11-19","Thu 19 Nov","Mock 3","Study: Mock 2 misses, then Developer Productivity and Models & Prompting notes.|Mock (2 h): Mock exam 3, timed, no notes.","1 h + mock"],
+["2026-11-20","Fri 20 Nov","Mock 4","Study: Mock 3 misses, then Solution Design and Stakeholder notes.|Mock (2 h): Mock exam 4, timed, no notes.","1 h + mock"],
+["2026-11-21","Sat 21 Nov","Mock 5","Study: Mock 4 misses, then the My missed questions deck.|Mock (2 h): Mock exam 5, timed, no notes.","1 h + mock"],
+["2026-11-22","Sun 22 Nov","Mock 6","Study: Mock 5 misses, then the All concepts deck.|Mock (2 h): Mock exam 6, timed, no notes.","1 h + mock"],
+["2026-11-23","Mon 23 Nov","Independent mock","Study: Mock 6 misses, then every domain’s traps list.|Mock (2 h): CertSafari’s free 63-question simulated exam (different authors, so an honest check), timed, no notes.","1 h + mock"],
+["2026-11-24","Tue 24 Nov","Mixed mock","Study: CertSafari misses, then domain notes for anything under 72%.|Mock (2 h): Mixed mock, timed, no notes.","1 h + mock"],
+["2026-11-25","Wed 25 Nov","Mixed mock","Study: yesterday’s misses, then My missed questions deck.|Mock (2 h): Mixed mock, timed, no notes.","1 h + mock"],
+["2026-11-26","Thu 26 Nov","Mixed mock","Study: yesterday’s misses, then All concepts deck.|Mock (2 h): Mixed mock, timed, no notes.","1 h + mock"],
+["2026-11-27","Fri 27 Nov","Mixed mock","Study: yesterday’s misses, then domain notes for anything under 80%.|Mock (2 h): Mixed mock, timed, no notes.","1 h + mock"],
+["2026-11-28","Sat 28 Nov","Mixed mock at exam time","Study: yesterday’s misses, then My missed questions deck.|Mock (2 h): Mixed mock, at the time of day your exam is booked, timed, no notes.","1 h + mock"],
+["2026-11-29","Sun 29 Nov","Last mock, then wind down","Study: yesterday’s misses and the traps lists. Later: check exam login, ID and room set-up. Early night.|Mock (2 h): Mixed mock in the morning, timed, no notes.","1 h + mock"],
+["2026-11-30","Mon 30 Nov","Exam day","Warm up with 15 concept cards only, no new material.|Pace: about 1 min 50 s per question; flag and move on, then come back.|Read the operative words: first, most directly, strongest, select two.","Exam"]];
+function planHome(){const done=store("ccarp-plan")||{};const d=new Date(),today=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const best=store("ccarp-best")||{},taken=BANK.map((_,i)=>best["m"+i]).filter(x=>x!=null);
+  const ndone=Object.values(done).filter(Boolean).length;
+  return `<section class="card stack"><div class="row" style="justify-content:space-between"><h3>Exam: Monday 30 November</h3><span class="pill">${ndone}/${PLAN.length-1} days done</span></div>
+  <p class="small muted">One study hour and one timed mock a day. Target 80% or more on Mocks 4–6 and 85% on mixed mocks, for a safe margin over the ~72% pass line.${taken.length?` Mock bests so far: ${taken.map(x=>Math.round(x*100)+"%").join(", ")}.`:""}</p></section>
+  <div class="stack">${PLAN.map(([iso,day,title,tasks,time])=>`<section class="card stack day ${iso===today?"today":""} ${done[iso]?"done":""}"><div class="row" style="justify-content:space-between"><span class="small muted">${day}${iso===today?` · <strong>Today</strong>`:""}</span><span class="pill">${time}</span></div><h3>${esc(title)}</h3><ul class="list">${tasks.split("|").map(t=>`<li>${esc(t)}</li>`).join("")}</ul>${iso!=="2026-11-30"?`<label class="row small" for="p${iso}"><input type="checkbox" id="p${iso}" data-plan="${iso}" ${done[iso]?"checked":""}> Done</label>`:""}</section>`).join("")}</div>
+  <section class="card stack"><h3>Daily routine</h3><ul class="list"><li><strong>1 hour study:</strong> start with yesterday’s misses and guesses in the paper notes, saying why each wrong option fails the requirement. Then the notes or deck listed for the day.</li><li><strong>2-hour mock:</strong> timed, phone away, no notes. Glance at your score and domain bars afterwards; the detailed review is tomorrow’s study hour.</li></ul><p class="small muted">Mixed mocks repeat questions you have seen, so scores rise faster than real skill. From 24 Nov treat 85% as your bar there, and trust the CertSafari result as the honest check.</p></section><section class="card stack"><h3>How this plan helps you remember</h3><ul class="list"><li><strong>Recall before review.</strong> Answer from memory first, then check. Flashcards and drills do this.</li><li><strong>Spaced repetition.</strong> Each domain comes back several times across the two weeks.</li><li><strong>Mixed practice.</strong> Mocks mix domains, as the real exam does.</li><li><strong>Explain the wrong options.</strong> On review, say why each distractor fails the stated requirement.</li></ul></section>`}
+function wireExtras(){
+  app.querySelectorAll("[data-notes]").forEach(b=>b.onclick=()=>openNotes(b.dataset.notes));
+  app.querySelectorAll("[data-paper]").forEach(b=>b.onclick=()=>openPaper(+b.dataset.paper));
+  app.querySelectorAll("[data-cards]").forEach(b=>b.onclick=()=>startCards(b.dataset.cards));
+  app.querySelectorAll("[data-mix]").forEach(b=>b.onclick=startMixed);
+  app.querySelectorAll("[data-drillgo]").forEach(b=>b.onclick=()=>startDrill(b.dataset.drillgo));
+  app.querySelectorAll("[data-plan]").forEach(b=>b.onchange=()=>{const d=store("ccarp-plan")||{};d[b.dataset.plan]=b.checked;store("ccarp-plan",d);home()});
+}
+
+function results(){
+  window.scrollTo(0,0);const n=S.qs.length,ok=S.qs.filter((q,i)=>correct(q,S.sel[i])).length,pct=ok/n;
+  const by={};S.qs.forEach((q,i)=>{by[q.d]=by[q.d]||[0,0];by[q.d][1]++;if(correct(q,S.sel[i]))by[q.d][0]++});
+  const doms=KEYS.filter(k=>by[k]).map(k=>{const [a,t]=by[k],p=a/t;return `<span>${esc(DOM[k][0])}</span><span class="num">${a}/${t}</span><div class="meter"><i style="width:${p*100}%;background:var(${p>=PASS?"--good":"--bad"})"></i>${S.mode==="mock"?"<b></b>":""}</div>`}).join("");
+  const weak=KEYS.filter(k=>by[k]&&by[k][0]/by[k][1]<PASS).sort((a,b)=>by[a][0]/by[a][1]-by[b][0]/by[b][1]);
+  const list=S.qs.map((q,i)=>({q,i,ok:correct(q,S.sel[i])})).filter(x=>!x.ok);
+  app.innerHTML=`<div class="stack" style="gap:20px">
+  <div class="row" style="justify-content:space-between"><button class="btn ghost" id="home">← All tests</button><span class="small muted">${esc(S.title)}</span></div>
+  <section class="card stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="score">${Math.round(pct*100)}%</div><p class="muted">${ok} of ${n} correct</p></div>
+  ${S.mode==="mock"?`<span class="pill ${pct>=PASS?"good":"bad"}">${pct>=PASS?"Above the ~72% pass line":"Below the ~72% pass line"}</span>`:""}</div>
+  ${weak.length?`<p class="small"><strong>Revise next:</strong> ${weak.map(k=>esc(DOM[k][0])).join(", ")}.</p>`:`<p class="small"><strong>Every domain is at or above the pass line.</strong></p>`}</section>
+  <section class="card stack"><h3>By domain</h3><div class="dom">${doms}</div>${S.mode==="mock"?`<p class="small muted">The black tick marks 72%.</p>`:""}</section>
+  <section class="stack"><h3>Questions you missed (${list.length})</h3>${list.length?list.map(x=>`<button class="tile" data-rev="${x.i}"><span class="small muted">Q${x.i+1} · ${esc(DOM[x.q.d][0])}</span><span>${esc(x.q.q)}</span></button>`).join(""):`<p class="muted">None. Well done.</p>`}</section>
+  <div class="row"><button class="btn" id="revall">Review all answers</button>${S.mode==="drill"?`<button class="btn primary" id="again">New drill in this domain</button>`:""}</div>
+  </div>`;
+  $("#home").onclick=home;$("#revall").onclick=()=>go(0);
+  const ag=$("#again");if(ag)ag.onclick=()=>startDrill(S.id.slice(1));
+  app.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>go(+b.dataset.rev));
+}
+</script>
+</body>
+</html>
