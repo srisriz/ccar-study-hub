@@ -1,0 +1,10 @@
+.vercel
+.env*
+# Encrypted question data and backups stay out of this public repo.
+# Deploy them from the local site folder.
+auth.bin
+ccar-p/d.*
+bandorini/d.*
+_backup/
+tools/ccar-p-additions.json
+.DS_Store
