@@ -120,6 +120,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .ck.on label span .pill{text-decoration:none}
 .ck.must{background:var(--accent-soft);border-radius:10px;padding:10px;border-top:0;margin:4px 0}
 .ck .btn.small{flex:none}
+.day.opt{border-style:dashed}
+[data-hide][aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .meter i{display:block;height:100%}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -346,53 +348,54 @@ function drawCard(){window.scrollTo(0,0);
   const a=$("#again");if(a)a.onclick=()=>{C.queue.push(C.queue.shift());C.flip=false;drawCard()};
 }
 
-/* ---------- plan: one dated checklist, 24–30 Nov ---------- */
+/* ---------- plan: one dated checklist, 27–30 Nov ---------- */
 /* Item: [id, text, action] where action is "notes:K", "cards:DECK", "paper:i", "mock:i" or "". Mock items are mandatory. */
 const SHORT={SD:"Design",MP:"Prompting",IN:"Integration",EV:"Evaluation",GV:"Governance",SC:"Stakeholders",DP:"Claude Code"};
 const topics=k=>STUDY.domains[k].points.map(([t],n)=>[`t-${k}-${n}`,`${SHORT[k]}: ${t}`,`notes:${k}`]);
 const traps=k=>[`x-${k}`,`${SHORT[k]}: traps list and flashcards`,`cards:c-${k}`];
 const mockItem=(i,when)=>[`m-${i}`,`Mock exam ${i+1}, 63 questions, timed 2 h, no notes${when?` (${when})`:""}`,`mock:${i}`];
 const checkList=()=>[
- ["2026-11-24","Tue 24 Nov","Governance and safety",[
-   ["r-24","Review: your most recent misses (My missed questions deck)","cards:miss"],
-   ...topics("GV"),traps("GV"),mockItem(6)]],
- ["2026-11-25","Wed 25 Nov","Integration",[
-   ["r-25","Review: Mock 7 paper notes, every miss and guess","paper:6"],
-   ...topics("IN"),traps("IN"),mockItem(7)]],
- ["2026-11-26","Thu 26 Nov","Evaluation and Developer Productivity",[
-   ["r-26","Review: Mock 8 paper notes, every miss and guess","paper:7"],
-   ...topics("EV"),traps("EV"),...topics("DP"),traps("DP"),mockItem(8)]],
- ["2026-11-27","Fri 27 Nov","Solution Design",[
-   ["r-27","Review: Mock 9 paper notes, every miss and guess","paper:8"],
-   ...topics("SD"),traps("SD"),mockItem(9)]],
- ["2026-11-28","Sat 28 Nov","Models and Prompting, and Stakeholders",[
-   ["r-28","Review: Mock 10 paper notes, every miss and guess","paper:9"],
-   ...topics("MP"),traps("MP"),...topics("SC"),traps("SC"),mockItem(10,"at your exam's time of day")]],
- ["2026-11-29","Sun 29 Nov","Final review",[
-   ["r-29","Review: Mock 11 paper notes, every miss and guess","paper:10"],
+ ["2026-11-27","Fri 27 Nov · evening","Baseline mock tonight",[
+   mockItem(6,"start by 7:30 pm"),
+   ["r2-27","Review: Mock 7 paper notes, every miss and guess (20 min)","paper:6"],
+   traps("DP")]],
+ ["2026-11-28","Sat 28 Nov","Integration, Solution Design and Evaluation (52% of the exam)",[
+   ["r2-28","Review: My missed questions deck","cards:miss"],
+   ...topics("IN"),traps("IN"),...topics("SD"),traps("SD"),
+   mockItem(7,"afternoon"),
+   ["p2-28","Review: Mock 8 paper notes, every miss and guess","paper:7"],
+   ...topics("EV"),traps("EV")]],
+ ["2026-11-29","Sun 29 Nov","Governance, Stakeholders and Prompting, then the final mock",[
+   ...topics("GV"),traps("GV"),...topics("SC"),traps("SC"),...topics("MP"),traps("MP"),
+   mockItem(8,"at your exam's time of day"),
+   ["p2-29","Review: Mock 9 paper notes, every miss and guess","paper:8"],
    ["a-29","All concepts deck, one full pass","cards:c-all"],
    ["w-29","My missed questions deck, until every card is ‘Got it’","cards:miss"],
-   mockItem(11,"in the morning"),
    ["s-29","Check exam login, ID and room set-up, then an early night",""]]],
  ["2026-11-30","Mon 30 Nov","Exam day",[
    ["e1","Warm up with 15 concept cards only; no new material","cards:c-all"],
    ["e2","Pace about 1 min 50 s per question; flag and move on, then come back",""],
-   ["e3","Read the operative words: first, best, most directly, select two",""]]]];
-function planHome(){const CHECK=checkList();const done=store("ccarp-check")||{};const legacy=store("ccarp-topics")||{};Object.keys(legacy).forEach(key=>{const p=key.split("|");const id=`t-${p[1]}-${p[2]}`;if(legacy[key]&&!(id in done))done[id]=true});const best=store("ccarp-best")||{};
+   ["e3","Read the operative words: first, best, most directly, select two",""]]],
+ ["","Only if you have spare time","Extras",[
+   ...topics("DP"),mockItem(9),mockItem(10),mockItem(11)],true]];
+function planHome(){const CHECK=checkList();const done=store("ccarp-check")||{};const legacy=store("ccarp-topics")||{};Object.keys(legacy).forEach(key=>{const p=key.split("|");const id=`t-${p[1]}-${p[2]}`;if(legacy[key]&&!(id in done))done[id]=true});const best=store("ccarp-best")||{};const hide=!!store("ccarp-hide");
   const d=new Date(),today=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-  const all=CHECK.flatMap(x=>x[3]),n=all.filter(it=>done[it[0]]).length;
+  const all=CHECK.filter(x=>!x[4]).flatMap(x=>x[3]),n=all.filter(it=>done[it[0]]).length;
   const mocks=all.filter(it=>it[2].startsWith("mock:")),mdone=mocks.filter(it=>done[it[0]]).length;
+  const hidden=hide?CHECK.flatMap(x=>x[3]).filter(it=>done[it[0]]).length:0;
   const act=a=>{if(!a)return"";const [k,v]=a.split(":");const lab={notes:"Notes",cards:"Cards",paper:"Notes",mock:"Start"}[k];
     const attr={notes:`data-notes="${v}"`,cards:`data-cards="${v}"`,paper:`data-paper="${v}"`,mock:`data-mock="${v}"`}[k];
     return `<button class="btn small ${k==="mock"?"primary":"ghost"}" ${attr}>${lab}</button>`};
-  const row=it=>{const [id,text,a]=it,isM=a.startsWith("mock:"),sc=isM?best["m"+a.slice(5)]:null;
-    return `<li class="ck ${done[id]?"on":""} ${isM?"must":""}"><label><input type="checkbox" data-check="${id}" ${done[id]?"checked":""}><span>${isM?`<strong>Mandatory:</strong> `:""}${esc(text)}${sc!=null?` <span class="pill ${sc>=PASS?"good":"bad"}">Best ${Math.round(sc*100)}%</span>`:""}</span></label>${act(a)}</li>`};
+  const row=(it,opt)=>{const [id,text,a]=it,isM=a.startsWith("mock:"),sc=isM?best["m"+a.slice(5)]:null;
+    return `<li class="ck ${done[id]?"on":""} ${isM&&!opt?"must":""}"><label><input type="checkbox" data-check="${id}" ${done[id]?"checked":""}><span>${isM&&!opt?`<strong>Mandatory:</strong> `:""}${esc(text)}${sc!=null?` <span class="pill ${sc>=PASS?"good":"bad"}">Best ${Math.round(sc*100)}%</span>`:""}</span></label>${act(a)}</li>`};
   return `<section class="card stack"><div class="row" style="justify-content:space-between"><h3>Exam: Monday 30 November</h3><span class="pill">${n}/${all.length} done</span></div>
   <div class="meter" aria-hidden="true"><i style="width:${all.length?n/all.length*100:0}%;background:var(--accent)"></i></div>
-  <p class="small muted">One checklist covering every syllabus topic, with one timed mock each day (${mdone}/${mocks.length} done). The weakest areas from your practice exam come first: governance, integration and evaluation. Each day is about 1 hour of study plus the 2-hour mock. If you have already covered a topic, give it a 2-minute skim of the notes and tick it. Mocks 7–12 are new exam-style papers you haven't seen.</p></section>
-  <div class="stack">${CHECK.map(([iso,day,title,items])=>{const k=items.filter(it=>done[it[0]]).length;
-    return `<section class="card stack day ${iso===today?"today":""} ${k===items.length?"done":""}"><div class="row" style="justify-content:space-between"><span class="small muted">${day}${iso===today?` · <strong>Today</strong>`:""}</span><span class="pill">${k}/${items.length}</span></div><h3>${esc(title)}</h3><ul class="cklist">${items.map(row).join("")}</ul></section>`}).join("")}</div>
-  <section class="card stack"><h3>How to use each day</h3><ul class="list"><li><strong>Study hour:</strong> start with yesterday’s misses, saying why each wrong option fails the requirement, then work down the topics. Tap Notes to open that domain’s notes.</li><li><strong>Mock:</strong> timed, phone away, no notes. Aim for 80% or more; the pass line is about 72%.</li><li><strong>Rule of thumb:</strong> most lost marks come from choosing a measure that only supports the goal. Ask “what directly enforces or solves this?”</li></ul></section>`}
+  <p class="small muted">Three days to go. One timed mock a day (${mdone}/${mocks.length} done), with the highest-weighted domains first: Integration, Solution Design and Evaluation on Saturday, then Governance, Stakeholders and Prompting on Sunday. If you have already covered a topic, give the notes a 2-minute skim and tick it. Extras at the bottom are only for spare time. Ticks are saved on this device.</p>
+  <div class="row" style="justify-content:space-between"><button class="btn small" data-hide="1" aria-pressed="${hide}">${hide?"Show completed items":"Hide completed items"}</button>${hidden?`<span class="small muted">${hidden} completed item${hidden===1?"":"s"} hidden</span>`:""}</div></section>
+  <div class="stack">${CHECK.map(([iso,day,title,items,opt])=>{const k=items.filter(it=>done[it[0]]).length,shown=hide?items.filter(it=>!done[it[0]]):items;
+    if(hide&&!shown.length)return "";
+    return `<section class="card stack day ${iso&&iso===today?"today":""} ${k===items.length?"done":""} ${opt?"opt":""}"><div class="row" style="justify-content:space-between"><span class="small muted">${day}${iso&&iso===today?` · <strong>Today</strong>`:""}</span><span class="pill">${k}/${items.length}</span></div><h3>${esc(title)}</h3><ul class="cklist">${shown.map(it=>row(it,opt)).join("")}</ul></section>`}).join("")}${hide&&!CHECK.some(x=>x[3].some(it=>!done[it[0]]))?`<section class="card"><p class="muted">Everything is ticked off. Good luck on Monday.</p></section>`:""}</div>
+  <section class="card stack"><h3>How to use each day</h3><ul class="list"><li><strong>Mock first when you can:</strong> timed, phone away, no notes. Aim for 80% or more; the pass line is about 72%.</li><li><strong>Then the misses:</strong> for every miss and guess, say why each wrong option fails the requirement.</li><li><strong>Topics:</strong> tap Notes to open the domain, skim, tick. Use the traps list and flashcards to finish each domain.</li><li><strong>Rule of thumb:</strong> most lost marks come from choosing a measure that only supports the goal. Ask “what directly enforces or solves this?”</li></ul></section>`}
 
 function wireExtras(){
   app.querySelectorAll("[data-features]").forEach(b=>b.onclick=openFeatures);
@@ -401,6 +404,7 @@ function wireExtras(){
   app.querySelectorAll("[data-cards]").forEach(b=>b.onclick=()=>startCards(b.dataset.cards));
   app.querySelectorAll("[data-mix]").forEach(b=>b.onclick=startMixed);
   app.querySelectorAll("[data-drillgo]").forEach(b=>b.onclick=()=>startDrill(b.dataset.drillgo));
+  app.querySelectorAll("[data-hide]").forEach(b=>b.onclick=()=>{store("ccarp-hide",!store("ccarp-hide"));home()});
   app.querySelectorAll("[data-check]").forEach(b=>b.onchange=()=>{const d=store("ccarp-check")||{};d[b.dataset.check]=b.checked;store("ccarp-check",d);const y=window.scrollY;home();window.scrollTo(0,y)});
 }
 
