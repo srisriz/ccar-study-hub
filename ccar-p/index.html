@@ -315,6 +315,7 @@ const OFF="ccarp-offline";
 const offTests=()=>store(OFF)||[];
 const isoToday=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
 const letters=x=>[...new Set(String(x).toUpperCase().replace(/[^A-F]/g,""))].sort().join("");
+const normAns=x=>{x=String(x||"").trim();return /^[A-Fa-f\s,&\/+]+$/.test(x)?letters(x):x};
 function parseAns(txt){const t=String(txt||"").toUpperCase().trim(),out={};if(!t)return out;
   if(/\d/.test(t)){const re=/(\d+)\s*[.):\-]?\s*([A-F](?:[\s,&\/+]*[A-F])*)/g;let m;while((m=re.exec(t)))out[+m[1]]=letters(m[2])}
   else{const tk=/[\s,;]/.test(t)?t.split(/[\s,;]+/).filter(Boolean):t.replace(/[^A-F]/g,"").split("");tk.forEach((x,i)=>out[i+1]=letters(x))}
@@ -364,7 +365,7 @@ function drawOffline(keep){const y=window.scrollY,isNew=!offTests().some(x=>x.id
     if(!(tot>0)||String(E.correct).trim()===""||!(cor>=0)||cor>tot){err.textContent="Enter the number of questions and how many you got right.";return}
     const dom={};for(const k of KEYS){const p=E.dom[k];if(!p)continue;const a=+p[0],b=+p[1];if(String(p[0]).trim()===""||!(b>0)||!(a>=0)||a>b){err.textContent=`Check the ${DOM[k][0]} score: correct / questions.`;return}dom[k]=[a,b]}
     const t={id:E.id,name:String(E.name).trim(),date:E.date||isoToday(),total:tot,correct:cor,dom,mode:E.mode,key:E.key||"",mine:E.mine||"",
-      miss:E.miss.filter(m=>String(m.n||"").trim()||String(m.note||"").trim()||String(m.key||"").trim()).map(m=>({n:String(m.n||"").trim(),d:m.d||"",mine:letters(m.mine||"")||String(m.mine||"").trim(),key:letters(m.key||"")||String(m.key||"").trim(),note:String(m.note||"").trim(),fixed:!!m.fixed}))};
+      miss:E.miss.filter(m=>String(m.n||"").trim()||String(m.note||"").trim()||String(m.key||"").trim()).map(m=>({n:String(m.n||"").trim(),d:m.d||"",mine:normAns(m.mine),key:normAns(m.key),note:String(m.note||"").trim(),fixed:!!m.fixed}))};
     const all=offTests().filter(x=>x.id!==t.id);all.push(t);all.sort((a,b)=>String(b.date).localeCompare(String(a.date)));store(OFF,all);E=null;homeTab="progress";home()});
   on("of-del",()=>confirmBox("Delete this offline test?","Its score and mistakes will be removed from your Progress tab.",()=>{store(OFF,offTests().filter(x=>x.id!==E.id));E=null;home()},"Delete","Cancel"));
 }
