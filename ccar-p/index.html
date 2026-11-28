@@ -121,6 +121,11 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .ck.must{background:var(--accent-soft);border-radius:10px;padding:10px;border-top:0;margin:4px 0}
 .ck .btn.small{flex:none}
 .day.opt{border-style:dashed}
+.in{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:8px 10px;font:inherit;min-height:40px}
+.in.num{width:64px;text-align:center}
+.in.ans{width:60px;text-transform:uppercase;text-align:center}
+textarea.in{width:100%;resize:vertical}
+.offrow .row{gap:8px}
 [data-hide][aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .meter i{display:block;height:100%}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -275,23 +280,94 @@ function qBySrc(src){const [i,j]=String(src).split("-").map(Number);return BANK[
 function band(p,n){if(n<5)return["","Too few answers"];return p>=.85?["good","Strong"]:p>=PASS?["good","Pass level"]:p>=.6?["warn","Needs work"]:["bad","Weak"]}
 function progressHome(){const st=stats(),dom={};let R=0,W=0;
   Object.entries(st).forEach(([k,e])=>{const x=qBySrc(k);if(!x)return;const d=x.q.d;dom[d]=dom[d]||[0,0];dom[d][0]+=e.r;dom[d][1]+=e.w;R+=e.r;W+=e.w});
+  const OT=offTests();OT.forEach(t=>Object.entries(t.dom||{}).forEach(([d,[c,n]])=>{if(!DOM[d])return;dom[d]=dom[d]||[0,0];dom[d][0]+=c;dom[d][1]+=n-c;R+=c;W+=n-c}));
   const rows=KEYS.map(k=>{const [r,w]=dom[k]||[0,0],n=r+w,p=n?r/n:0;return{k,r,w,n,p}}).sort((a,b)=>(a.n?a.p:2)-(b.n?b.p:2));
   const strength=rows.map(x=>{const [c,l]=band(x.p,x.n);return `<span>${esc(DOM[x.k][0])} <span class="small muted">· ${DOM[x.k][1]}% of exam</span></span><span class="num">${x.n?Math.round(x.p*100)+"%":"–"}</span><div class="meter"><i style="width:${x.p*100}%;background:var(${x.p>=PASS?"--good":x.p>=.6?"--warn":"--bad"})"></i><b></b></div><span class="small muted" style="grid-column:1/-1;margin:-6px 0 8px">${x.n?`${x.r} right · ${x.w} wrong`:"Not answered yet"}${l&&x.n?` · <span class="pill ${c}">${l}</span>`:""}</span>`}).join("");
   const all=Object.entries(st).filter(([k,e])=>e.w>0&&qBySrc(k)).map(([k,e])=>({k,e,...qBySrc(k)}));
   const open=all.filter(x=>!x.e.last),list=(mistFilter==="open"?open:all).sort((a,b)=>b.e.w-a.e.w||b.e.t-a.e.t);
+  const offMiss=OT.flatMap(t=>(t.miss||[]).map((m,i)=>({t,m,i}))),offOpen=offMiss.filter(x=>!x.m.fixed),offList=mistFilter==="open"?offOpen:offMiss;
+  const offItems=offList.map(({t,m,i})=>`<details class="mist"><summary><span class="row" style="justify-content:space-between"><span class="small muted">Offline · ${esc(t.name)}${m.n?` · Q${esc(m.n)}`:""}${m.d&&DOM[m.d]?` · ${esc(DOM[m.d][0])}`:""}</span>${m.fixed?`<span class="pill good">Fixed</span>`:`<span class="pill bad">To fix</span>`}</span><span class="q">${m.note?esc(m.note):`<span class="muted">No question text added</span>`}</span></summary>
+    <div class="body">${m.mine||m.key?`<p>${m.mine?`Your answer: <strong>${esc(m.mine)}</strong>`:"Not answered"}${m.key?` · Correct: <strong>${esc(m.key)}</strong>`:""}</p>`:""}<div class="row"><button class="btn small" data-ofix="${esc(t.id)}|${i}">${m.fixed?"Mark as not fixed":"Mark as fixed"}</button><button class="btn small ghost" data-oedit="${esc(t.id)}">Edit test</button></div></div></details>`).join("");
+  const best=store("ccarp-best")||{};
+  const sc=[...BANK.map((_,i)=>best["m"+i]!=null?{name:`Mock exam ${i+1}`,p:best["m"+i],tag:"best"}:null).filter(Boolean),...(best.mix!=null?[{name:"Mixed mock",p:best.mix,tag:"last"}]:[]),...OT.map(t=>({name:t.name,p:t.correct/t.total,tag:"offline",id:t.id,date:t.date}))];
   const items=list.map(({k,e,q,i,j})=>`<details class="mist"><summary><span class="row" style="justify-content:space-between"><span class="small muted">${esc(DOM[q.d][0])} · Mock ${i+1}</span><span class="row" style="gap:6px"><span class="pill bad">Missed ${e.w}×</span>${e.r?`<span class="pill good">Right ${e.r}×</span>`:""}${e.last?`<span class="pill good">Fixed</span>`:""}</span></span><span class="q">${esc(q.q)}</span></summary>
     <div class="body"><p><strong>Answer: </strong>${q.o.slice(0,q.k).map(esc).join(" <em>and</em> ")}</p><p class="small">${esc(q.x)}</p></div></details>`).join("");
-  return `<section class="card stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><h3>Strength index</h3>${R+W?`<span class="pill ${R/(R+W)>=PASS?"good":"bad"}">Overall ${Math.round(R/(R+W)*100)}% · ${R+W} answers</span>`:""}</div>
-  <p class="small muted">Every answer you give in mocks and drills counts. Weakest areas are at the top. The black tick marks the ~72% pass line.</p>
+  return `<section class="card stack"><div class="row" style="justify-content:space-between"><h3>Test scores</h3><button class="btn small primary" data-oadd="1">Add an offline test</button></div>
+  ${sc.length?`<div class="dom">${sc.map(x=>`<span>${esc(x.name)} <span class="small muted">· ${x.tag}${x.date?" · "+esc(x.date):""}</span>${x.id?` <button class="btn small ghost" data-oedit="${esc(x.id)}" style="min-height:32px;padding:2px 10px">Edit</button>`:""}</span><span class="num">${Math.round(x.p*100)}%</span><div class="meter"><i style="width:${x.p*100}%;background:var(${x.p>=PASS?"--good":"--bad"})"></i><b></b></div>`).join("")}</div>`:`<p class="muted">No test scores on this device yet.</p>`}
+  <p class="small muted">Took a test on paper or from a PDF? Add it to record your score and the questions you got wrong. Scores and progress are saved on this device only.</p></section>
+  <section class="card stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><h3>Strength index</h3>${R+W?`<span class="pill ${R/(R+W)>=PASS?"good":"bad"}">Overall ${Math.round(R/(R+W)*100)}% · ${R+W} answers</span>`:""}</div>
+  <p class="small muted">Every answer you give in mocks and drills counts, plus domain scores from offline tests. Weakest areas are at the top. The black tick marks the ~72% pass line.</p>
   ${R+W?`<div class="dom">${strength}</div>`:`<p class="muted">Answer some questions in a mock or drill and your strengths will show here.</p>`}</section>
-  <section class="stack"><div class="row" style="justify-content:space-between"><h2>Running list of mistakes</h2><span class="small muted">${open.length} still to fix · ${all.length} ever missed</span></div>
+  <section class="stack"><div class="row" style="justify-content:space-between"><h2>Running list of mistakes</h2><span class="small muted">${open.length+offOpen.length} still to fix · ${all.length+offMiss.length} ever missed</span></div>
   <div class="seg" role="group" aria-label="Filter mistakes"><button data-mf="open" aria-pressed="${mistFilter==="open"}">Still to fix</button><button data-mf="all" aria-pressed="${mistFilter==="all"}">All mistakes</button></div>
   <p class="small muted">Most-missed first. Tap a question to see the answer. A question moves to “Fixed” once you get it right on a later attempt.</p>
-  ${items||`<p class="muted">${all.length?"Nothing left to fix. Well done.":"No mistakes recorded yet."}</p>`}
+  ${(items+offItems)||`<p class="muted">${all.length+offMiss.length?"Nothing left to fix. Well done.":"No mistakes recorded yet."}</p>`}
   ${open.length?`<div class="row"><button class="btn primary" data-cards="miss">Flashcards for my missed questions</button></div>`:""}
   ${Object.keys(st).length?`<div class="row"><button class="btn ghost small" id="resetStats">Reset progress</button></div>`:""}</section>`}
 function wireProgress(){app.querySelectorAll("[data-mf]").forEach(b=>b.onclick=()=>{mistFilter=b.dataset.mf;home()});
-  const r=$("#resetStats");if(r)r.onclick=()=>confirmBox("Reset your progress?","This clears the strength index and the list of mistakes. Mock scores are kept.",()=>{store(STATS,{});home()},"Reset","Cancel")}
+  app.querySelectorAll("[data-oadd]").forEach(b=>b.onclick=()=>openOffline());
+  app.querySelectorAll("[data-oedit]").forEach(b=>b.onclick=e=>{e.preventDefault();openOffline(b.dataset.oedit)});
+  app.querySelectorAll("[data-ofix]").forEach(b=>b.onclick=()=>{const p=b.dataset.ofix,k=p.lastIndexOf("|"),id=p.slice(0,k),i=+p.slice(k+1);const all=offTests(),t=all.find(x=>x.id===id);if(t&&t.miss[i]){t.miss[i].fixed=!t.miss[i].fixed;store(OFF,all)}const y=window.scrollY;home();window.scrollTo(0,y)});
+  const r=$("#resetStats");if(r)r.onclick=()=>confirmBox("Reset your progress?","This clears the strength index and the mistakes from mocks and drills. Mock scores and offline tests are kept.",()=>{store(STATS,{});home()},"Reset","Cancel")}
+
+/* ---------- offline tests: score and mistakes from tests taken outside the site ---------- */
+const OFF="ccarp-offline";
+const offTests=()=>store(OFF)||[];
+const isoToday=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
+const letters=x=>[...new Set(String(x).toUpperCase().replace(/[^A-F]/g,""))].sort().join("");
+function parseAns(txt){const t=String(txt||"").toUpperCase().trim(),out={};if(!t)return out;
+  if(/\d/.test(t)){const re=/(\d+)\s*[.):\-]?\s*([A-F](?:[\s,&\/+]*[A-F])*)/g;let m;while((m=re.exec(t)))out[+m[1]]=letters(m[2])}
+  else{const tk=/[\s,;]/.test(t)?t.split(/[\s,;]+/).filter(Boolean):t.replace(/[^A-F]/g,"").split("");tk.forEach((x,i)=>out[i+1]=letters(x))}
+  return out}
+let E=null;
+function openOffline(id){const t=id?offTests().find(x=>x.id===id):null;
+  E=t?JSON.parse(JSON.stringify(t)):{id:"o"+Date.now(),name:"",date:isoToday(),total:"",correct:"",miss:[],dom:{},mode:"mark",key:"",mine:"",nums:""};
+  E.dom=E.dom||{};E.miss=E.miss||[];E.mode=E.mode||"list";drawOffline(false)}
+function readOff(){if(!E)return;const v=id=>{const e=document.getElementById(id);return e?e.value:undefined};
+  ["name","date","total","correct","key","mine","nums"].forEach(k=>{const x=v("of-"+k);if(x!==undefined)E[k]=x});
+  app.querySelectorAll("[data-mrow]").forEach(r=>{const m=E.miss[+r.dataset.mrow];if(!m)return;r.querySelectorAll("[data-f]").forEach(f=>{m[f.dataset.f]=f.type==="checkbox"?f.checked:f.value})});
+  KEYS.forEach(k=>{const a=v("od-r-"+k),b=v("od-t-"+k);if(a===undefined)return;if(String(a).trim()===""&&String(b).trim()==="")delete E.dom[k];else E.dom[k]=[a,b]})}
+function drawOffline(keep){const y=window.scrollY,isNew=!offTests().some(x=>x.id===E.id);
+  const dsel=val=>`<option value="">Domain (optional)</option>`+KEYS.map(k=>`<option value="${k}" ${val===k?"selected":""}>${esc(SHORT[k])}</option>`).join("");
+  const rows=E.miss.map((m,i)=>`<div class="note offrow" data-mrow="${i}" style="max-width:none"><div class="row"><label class="small">Q <input class="in num" data-f="n" value="${esc(m.n||"")}" inputmode="numeric"></label><select class="in" data-f="d" aria-label="Domain">${dsel(m.d)}</select><label class="small">Mine <input class="in ans" data-f="mine" value="${esc(m.mine||"")}"></label><label class="small">Correct <input class="in ans" data-f="key" value="${esc(m.key||"")}"></label><label class="small row" style="gap:4px"><input type="checkbox" data-f="fixed" ${m.fixed?"checked":""}> Fixed</label><button class="btn small ghost" data-mdel="${i}">Remove</button></div><textarea class="in" data-f="note" rows="2" placeholder="Optional: the question in your own words, or why you got it wrong">${esc(m.note||"")}</textarea></div>`).join("");
+  const domRows=KEYS.map(k=>{const [a,b]=E.dom[k]||["",""];return `<span>${esc(DOM[k][0])}</span><span class="row" style="gap:4px;flex-wrap:nowrap"><input class="in num" id="od-r-${k}" value="${esc(a)}" inputmode="numeric" aria-label="${esc(SHORT[k])}: correct"> / <input class="in num" id="od-t-${k}" value="${esc(b)}" inputmode="numeric" aria-label="${esc(SHORT[k])}: questions"></span>`}).join("");
+  const pct=+E.total>0&&String(E.correct).trim()!==""?+E.correct/+E.total:null;
+  page(isNew?"Add an offline test":"Edit offline test","Record a test you took on paper or from a PDF. The score and mistakes join your Progress tab on this device.",
+  `<section class="card stack"><label class="stack" style="gap:4px"><span class="small muted">Test name</span><input class="in" id="of-name" value="${esc(E.name)}" placeholder="For example: Practice test, 28 Nov"></label>
+   <label class="stack" style="gap:4px"><span class="small muted">Date taken</span><input class="in" type="date" id="of-date" value="${esc(E.date)}"></label></section>
+  <section class="card stack"><h3>1. Your score</h3>
+   <div class="seg" role="group" aria-label="How to enter the result"><button data-omode="mark" aria-pressed="${E.mode==="mark"}">Mark it for me</button><button data-omode="list" aria-pressed="${E.mode==="list"}">Enter my mistakes</button></div>
+   ${E.mode==="mark"?`<p class="small muted">Paste the answer key and your answers, either one per line (“1 A”, “2 BD”) or as a run of letters (“ADBC…”). Press Mark: wrong and blank answers become mistakes below.</p>
+     <label class="stack" style="gap:4px"><span class="small muted">Answer key</span><textarea class="in" id="of-key" rows="4">${esc(E.key||"")}</textarea></label>
+     <label class="stack" style="gap:4px"><span class="small muted">My answers</span><textarea class="in" id="of-mine" rows="4">${esc(E.mine||"")}</textarea></label>
+     <div class="row"><button class="btn primary" id="of-mark">Mark</button></div>`
+   :`<p class="small muted">Type the numbers of the questions you got wrong, for example “3, 7, 12”, and press Add.</p>
+     <div class="row"><input class="in" id="of-nums" value="${esc(E.nums||"")}" placeholder="3, 7, 12" style="flex:1" inputmode="numeric"><button class="btn" id="of-add">Add</button></div>`}
+   <div class="row"><label class="small">Questions <input class="in num" id="of-total" value="${esc(E.total)}" inputmode="numeric"></label><label class="small">Correct <input class="in num" id="of-correct" value="${esc(E.correct)}" inputmode="numeric"></label>${pct!=null?`<span class="pill ${pct>=PASS?"good":"bad"}">${Math.round(pct*100)}%</span>`:""}</div></section>
+  <section class="card stack"><div class="row" style="justify-content:space-between"><h3>2. Mistakes (${E.miss.length})</h3><button class="btn small" id="of-row">Add a mistake</button></div>
+   <p class="small muted">Tag each mistake with a domain if you can, and note the question in your own words so you can revise it later.</p>${rows||`<p class="muted">No mistakes added yet.</p>`}</section>
+  <section class="card stack"><h3>3. Score by domain (optional)</h3><p class="small muted">If the test gives a breakdown, enter correct / questions for each domain. This feeds your strength index.</p><div class="dom">${domRows}</div></section>
+  <div class="row"><button class="btn primary" id="of-save">Save test</button>${isNew?"":`<button class="btn ghost" id="of-del">Delete test</button>`}</div><p class="small" id="of-err" role="alert" style="color:var(--bad)"></p>`);
+  if(keep)window.scrollTo(0,y);
+  const on=(id,f)=>{const e=$("#"+id);if(e)e.onclick=f};
+  app.querySelectorAll("[data-omode]").forEach(b=>b.onclick=()=>{readOff();E.mode=b.dataset.omode;drawOffline(true)});
+  on("of-mark",()=>{readOff();const key=parseAns(E.key),mine=parseAns(E.mine),ns=Object.keys(key).map(Number).filter(n=>key[n]).sort((a,b)=>a-b);
+    if(!ns.length){$("#of-err").textContent="I couldn't read the answer key. Use one answer per line, like “1 A”, or a run of letters.";return}
+    const old={};E.miss.forEach(m=>old[String(m.n)]=m);const wrong=ns.filter(n=>(mine[n]||"")!==key[n]);
+    E.miss=wrong.map(n=>({...(old[String(n)]||{}),n:String(n),mine:mine[n]||"",key:key[n]}));E.total=String(ns.length);E.correct=String(ns.length-wrong.length);drawOffline(true)});
+  on("of-add",()=>{readOff();const have=new Set(E.miss.map(m=>String(m.n)));String(E.nums||"").split(/[^0-9]+/).filter(Boolean).forEach(n=>{n=String(+n);if(!have.has(n)){E.miss.push({n});have.add(n)}});
+    E.miss.sort((a,b)=>(+a.n||1e9)-(+b.n||1e9));E.nums="";if(+E.total>0)E.correct=String(Math.max(0,+E.total-E.miss.length));drawOffline(true)});
+  on("of-row",()=>{readOff();E.miss.push({});drawOffline(true)});
+  app.querySelectorAll("[data-mdel]").forEach(b=>b.onclick=()=>{readOff();E.miss.splice(+b.dataset.mdel,1);drawOffline(true)});
+  on("of-save",()=>{readOff();const err=$("#of-err"),tot=+E.total,cor=+E.correct;
+    if(!String(E.name).trim()){err.textContent="Give the test a name.";return}
+    if(!(tot>0)||String(E.correct).trim()===""||!(cor>=0)||cor>tot){err.textContent="Enter the number of questions and how many you got right.";return}
+    const dom={};for(const k of KEYS){const p=E.dom[k];if(!p)continue;const a=+p[0],b=+p[1];if(String(p[0]).trim()===""||!(b>0)||!(a>=0)||a>b){err.textContent=`Check the ${DOM[k][0]} score: correct / questions.`;return}dom[k]=[a,b]}
+    const t={id:E.id,name:String(E.name).trim(),date:E.date||isoToday(),total:tot,correct:cor,dom,mode:E.mode,key:E.key||"",mine:E.mine||"",
+      miss:E.miss.filter(m=>String(m.n||"").trim()||String(m.note||"").trim()||String(m.key||"").trim()).map(m=>({n:String(m.n||"").trim(),d:m.d||"",mine:letters(m.mine||"")||String(m.mine||"").trim(),key:letters(m.key||"")||String(m.key||"").trim(),note:String(m.note||"").trim(),fixed:!!m.fixed}))};
+    const all=offTests().filter(x=>x.id!==t.id);all.push(t);all.sort((a,b)=>String(b.date).localeCompare(String(a.date)));store(OFF,all);E=null;homeTab="progress";home()});
+  on("of-del",()=>confirmBox("Delete this offline test?","Its score and mistakes will be removed from your Progress tab.",()=>{store(OFF,offTests().filter(x=>x.id!==E.id));E=null;home()},"Delete","Cancel"));
+}
 
 /* ---------- study notes ---------- */
 const mockOrder=i=>shuffle(BANK[i],1000+i);
